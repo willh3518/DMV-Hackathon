@@ -136,20 +136,16 @@ void main() {
       expect(skipped.skipped, isTrue);
     });
 
-    test('distinguishes Q5 None, Prefer not to say, Skip, and answers', () {
+    test('distinguishes Q5 None, Skip, and answers', () {
       const PlanningSituationsDraft answered = PlanningSituationsDraft(
         situations: <PlanningSituation>{PlanningSituation.loudEnvironments},
       );
       const PlanningSituationsDraft none = PlanningSituationsDraft.none();
-      const PlanningSituationsDraft preferNotToSay =
-          PlanningSituationsDraft.preferNotToSay();
       const PlanningSituationsDraft skipped = PlanningSituationsDraft.skipped();
 
       expect(answered.hasAnswer, isTrue);
       expect(none.noneApply, isTrue);
       expect(none.hasAnswer, isTrue);
-      expect(preferNotToSay.preferNotToSay, isTrue);
-      expect(preferNotToSay.hasAnswer, isTrue);
       expect(skipped.skipped, isTrue);
       expect(skipped.hasAnswer, isFalse);
     });

@@ -215,41 +215,27 @@ final class PlanningSituationsDraft {
     this.situations = const <PlanningSituation>{},
     this.other = '',
   }) : noneApply = false,
-       preferNotToSay = false,
        skipped = false;
 
   const PlanningSituationsDraft.none()
     : situations = const <PlanningSituation>{},
       other = '',
       noneApply = true,
-      preferNotToSay = false,
-      skipped = false;
-
-  const PlanningSituationsDraft.preferNotToSay()
-    : situations = const <PlanningSituation>{},
-      other = '',
-      noneApply = false,
-      preferNotToSay = true,
       skipped = false;
 
   const PlanningSituationsDraft.skipped()
     : situations = const <PlanningSituation>{},
       other = '',
       noneApply = false,
-      preferNotToSay = false,
       skipped = true;
 
   final Set<PlanningSituation> situations;
   final String other;
   final bool noneApply;
-  final bool preferNotToSay;
   final bool skipped;
 
   bool get hasAnswer =>
-      noneApply ||
-      preferNotToSay ||
-      situations.isNotEmpty ||
-      other.trim().isNotEmpty;
+      noneApply || situations.isNotEmpty || other.trim().isNotEmpty;
 }
 
 /// Complete five-question draft passed to the external completion contract.

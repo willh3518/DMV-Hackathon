@@ -1,14 +1,10 @@
-import 'package:accessibility_frontend/contracts/onboarding_completion_gateway.dart';
 import 'package:accessibility_frontend/contracts/authentication_gateway.dart';
 import 'package:accessibility_frontend/design_system/components/multi_select_option_tile.dart';
 import 'package:accessibility_frontend/design_system/app_theme.dart';
 import 'package:accessibility_frontend/domain/authentication/authentication_models.dart';
 import 'package:accessibility_frontend/domain/onboarding/onboarding_answers.dart';
-import 'package:accessibility_frontend/domain/onboarding/onboarding_completion_models.dart';
-import 'package:accessibility_frontend/features/onboarding/presentation/onboarding_completion_screen.dart';
 import 'package:accessibility_frontend/features/onboarding/presentation/onboarding_entry_flow.dart';
 import 'package:accessibility_frontend/features/onboarding/presentation/questions/question_five_screen.dart';
-import 'package:accessibility_frontend/features/onboarding/presentation/questions/question_four_screen.dart';
 import 'package:accessibility_frontend/features/onboarding/presentation/questions/question_one_screen.dart';
 import 'package:accessibility_frontend/features/onboarding/presentation/questions/question_two_screen.dart';
 import 'package:accessibility_frontend/features/onboarding/presentation/widgets/onboarding_question_shell.dart';
@@ -249,101 +245,10 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('all five questions reach explicit completion confirmation', (
+  testWidgets('finishing Q5 stays on Q5 without a submit or confirmed page', (
     WidgetTester tester,
   ) async {
-    final _RecordingCompletionGateway gateway = _RecordingCompletionGateway();
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: AppTheme.light,
-        home: OnboardingEntryFlow(completionGateway: gateway),
-      ),
-    );
-    await _completeSignUp(tester);
-
-    await _continueToNextQuestion(tester);
-    await _continueToNextQuestion(tester);
-    final Finder noDistanceRestriction = find.byKey(
-      const Key('question_three_option_noDistanceRestriction'),
-    );
-    await tester.ensureVisible(noDistanceRestriction);
-    await tester.pump();
-    await tester.tap(noDistanceRestriction);
-    await tester.pump();
-    await _continueToNextQuestion(tester);
-
-    expect(
-      find.text('What kinds of places and activities interest you?'),
-      findsOneWidget,
-    );
-    final Finder museums = find.byKey(
-      QuestionFourScreen.optionKey(InterestOption.museums),
-    );
-    await tester.ensureVisible(museums);
-    await tester.pump();
-    await tester.tap(museums);
-    await tester.pump();
-    await _continueToNextQuestion(tester);
-
-    expect(
-      find.text('Are there situations we should avoid or plan around?'),
-      findsOneWidget,
-    );
-    final Finder loudEnvironments = find.byKey(
-      QuestionFiveScreen.situationKey(PlanningSituation.loudEnvironments),
-    );
-    await tester.ensureVisible(loudEnvironments);
-    await tester.pump();
-    await tester.tap(loudEnvironments);
-    await tester.pump();
-    await _continueToNextQuestion(tester);
-
-    expect(
-      find.text('Ready to submit your five question responses?'),
-      findsOneWidget,
-    );
-    expect(gateway.callCount, 0);
-
-    final Finder submit = find.byKey(
-      OnboardingCompletionScreen.primaryButtonKey,
-    );
-    await tester.ensureVisible(submit);
-    await tester.pump();
-    await tester.tap(submit);
-    await tester.pump();
-
-    expect(gateway.callCount, 1);
-    expect(
-      gateway.lastRequest?.submission.interests.options,
-      contains(InterestOption.museums),
-    );
-    expect(
-      gateway.lastRequest?.submission.planningSituations.situations,
-      contains(PlanningSituation.loudEnvironments),
-    );
-    expect(
-      find.text('Your profile setup is confirmed in this frontend build'),
-      findsOneWidget,
-    );
-    expect(find.text('Done for now'), findsOneWidget);
-  });
-
-  testWidgets('completion failure retries without losing onboarding answers', (
-    WidgetTester tester,
-  ) async {
-    final _SequencedCompletionGateway gateway =
-        _SequencedCompletionGateway(<OnboardingCompletionResult>[
-          const OnboardingCompletionFailure(
-            reason: OnboardingCompletionFailureReason.networkUnavailable,
-          ),
-          const OnboardingCompletionSuccess(),
-        ]);
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: AppTheme.light,
-        home: OnboardingEntryFlow(completionGateway: gateway),
-      ),
-    );
+    await tester.pumpWidget(const MainApp());
     await _completeSignUp(tester);
 
     await _continueToNextQuestion(tester);
@@ -355,70 +260,32 @@ void main() {
     await tester.pump();
     await tester.tap(questionThreeSkip);
     await _settleQuestionTransition(tester);
-
-    final Finder museums = find.byKey(
-      QuestionFourScreen.optionKey(InterestOption.museums),
-    );
-    await tester.ensureVisible(museums);
-    await tester.pump();
-    await tester.tap(museums);
-    final Finder customInterest = find.byKey(QuestionFourScreen.otherFieldKey);
-    await tester.ensureVisible(customInterest);
-    await tester.enterText(customInterest, 'Quiet book clubs');
     await _continueToNextQuestion(tester);
 
-    final Finder questionFiveSkip = find.byKey(
-      OnboardingQuestionShell.skipButtonKey,
+    final Finder loudEnvironments = find.byKey(
+      QuestionFiveScreen.situationKey(PlanningSituation.loudEnvironments),
     );
-    await tester.ensureVisible(questionFiveSkip);
+    await tester.ensureVisible(loudEnvironments);
     await tester.pump();
-    await tester.tap(questionFiveSkip);
-    await _settleQuestionTransition(tester);
+    await tester.tap(loudEnvironments);
+    await tester.pump();
+    await _continueToNextQuestion(tester);
 
-    final Finder completionAction = find.byKey(
-      OnboardingCompletionScreen.primaryButtonKey,
-    );
-    await tester.ensureVisible(completionAction);
-    await tester.pump();
-    await tester.tap(completionAction);
-    await tester.pump();
-
-    expect(find.text('We could not submit your responses'), findsOneWidget);
-    expect(find.text('Retry submission'), findsOneWidget);
-    expect(gateway.requests, hasLength(1));
-    expect(gateway.requests.single.submission.travelComfort.skipped, isTrue);
     expect(
-      gateway.requests.single.submission.interests.options,
-      contains(InterestOption.museums),
+      find.text('Are there situations we should avoid or plan around?'),
+      findsOneWidget,
     );
     expect(
-      gateway.requests.single.submission.interests.other,
-      'Quiet book clubs',
+      find.text('That is the last question. Chat is coming in the next stage.'),
+      findsOneWidget,
     );
     expect(
-      gateway.requests.single.submission.planningSituations.skipped,
-      isTrue,
+      find.text('Ready to submit your five question responses?'),
+      findsNothing,
     );
-
-    await tester.ensureVisible(completionAction);
-    await tester.pump();
-    await tester.tap(completionAction);
-    await tester.pump();
-
-    expect(gateway.callCount, 2);
-    expect(gateway.requests, hasLength(2));
-    for (final OnboardingCompletionRequest request in gateway.requests) {
-      expect(request.submission.travelComfort.skipped, isTrue);
-      expect(
-        request.submission.interests.options,
-        contains(InterestOption.museums),
-      );
-      expect(request.submission.interests.other, 'Quiet book clubs');
-      expect(request.submission.planningSituations.skipped, isTrue);
-    }
     expect(
       find.text('Your profile setup is confirmed in this frontend build'),
-      findsOneWidget,
+      findsNothing,
     );
   });
 
@@ -681,38 +548,5 @@ class _TestAuthenticationGateway implements AuthenticationGateway {
     required String password,
   }) async {
     return const AuthenticationSuccess(nextStep: StartOnboardingNextStep());
-  }
-}
-
-class _RecordingCompletionGateway implements OnboardingCompletionGateway {
-  int callCount = 0;
-  OnboardingCompletionRequest? lastRequest;
-
-  @override
-  Future<OnboardingCompletionResult> completeOnboarding(
-    OnboardingCompletionRequest request,
-  ) async {
-    callCount += 1;
-    lastRequest = request;
-    return const OnboardingCompletionSuccess();
-  }
-}
-
-class _SequencedCompletionGateway implements OnboardingCompletionGateway {
-  _SequencedCompletionGateway(this.results);
-
-  final List<OnboardingCompletionResult> results;
-  final List<OnboardingCompletionRequest> requests =
-      <OnboardingCompletionRequest>[];
-  int callCount = 0;
-
-  @override
-  Future<OnboardingCompletionResult> completeOnboarding(
-    OnboardingCompletionRequest request,
-  ) async {
-    requests.add(request);
-    final OnboardingCompletionResult result = results[callCount];
-    callCount += 1;
-    return result;
   }
 }

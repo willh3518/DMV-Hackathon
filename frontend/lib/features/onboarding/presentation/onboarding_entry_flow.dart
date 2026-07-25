@@ -1,14 +1,11 @@
 import 'dart:async';
 
 import 'package:accessibility_frontend/contracts/authentication_gateway.dart';
-import 'package:accessibility_frontend/contracts/onboarding_completion_gateway.dart';
 import 'package:accessibility_frontend/design_system/app_motion.dart';
 import 'package:accessibility_frontend/domain/authentication/authentication_models.dart';
 import 'package:accessibility_frontend/domain/onboarding/onboarding_answers.dart';
-import 'package:accessibility_frontend/domain/onboarding/onboarding_completion_models.dart';
 import 'package:accessibility_frontend/features/authentication/presentation/authentication_screen.dart';
 import 'package:accessibility_frontend/features/onboarding/presentation/landing_screen.dart';
-import 'package:accessibility_frontend/features/onboarding/presentation/onboarding_completion_screen.dart';
 import 'package:accessibility_frontend/features/onboarding/presentation/questions/question_five_screen.dart';
 import 'package:accessibility_frontend/features/onboarding/presentation/questions/question_four_screen.dart';
 import 'package:accessibility_frontend/features/onboarding/presentation/questions/question_one_screen.dart';
@@ -16,18 +13,12 @@ import 'package:accessibility_frontend/features/onboarding/presentation/question
 import 'package:accessibility_frontend/features/onboarding/presentation/questions/question_two_screen.dart';
 import 'package:accessibility_frontend/features/onboarding/presentation/widgets/bubble_backdrop.dart';
 import 'package:accessibility_frontend/fixtures/synthetic_authentication_gateway.dart';
-import 'package:accessibility_frontend/fixtures/synthetic_onboarding_completion_gateway.dart';
 import 'package:flutter/material.dart';
 
 class OnboardingEntryFlow extends StatefulWidget {
-  const OnboardingEntryFlow({
-    this.authenticationGateway,
-    this.completionGateway,
-    super.key,
-  });
+  const OnboardingEntryFlow({this.authenticationGateway, super.key});
 
   final AuthenticationGateway? authenticationGateway;
-  final OnboardingCompletionGateway? completionGateway;
 
   @override
   State<OnboardingEntryFlow> createState() => _OnboardingEntryFlowState();
@@ -43,7 +34,6 @@ class _OnboardingEntryFlowState extends State<OnboardingEntryFlow>
   late final FocusNode _signInFocusNode;
   late final List<FocusNode> _questionHeadingFocusNodes;
   late final AuthenticationGateway _authenticationGateway;
-  late final OnboardingCompletionGateway _completionGateway;
   AccommodationsDraft _accommodationsDraft = const AccommodationsDraft();
   ExperiencePreferencesDraft _experiencePreferencesDraft =
       const ExperiencePreferencesDraft();
@@ -51,8 +41,6 @@ class _OnboardingEntryFlowState extends State<OnboardingEntryFlow>
   InterestsDraft _interestsDraft = const InterestsDraft();
   PlanningSituationsDraft _planningSituationsDraft =
       const PlanningSituationsDraft();
-  OnboardingCompletionStage _completionStage = OnboardingCompletionStage.ready;
-  OnboardingCompletionFailureReason? _completionFailureReason;
   _LandingCta _questionOrigin = _LandingCta.getStarted;
   int _activeQuestionIndex = 0;
   int _outgoingQuestionIndex = 0;
@@ -76,12 +64,8 @@ class _OnboardingEntryFlowState extends State<OnboardingEntryFlow>
     _getStartedFocusNode = FocusNode(debugLabel: 'Get started');
     _signInFocusNode = FocusNode(debugLabel: 'Sign in');
     _questionHeadingFocusNodes = List<FocusNode>.generate(
-      6,
-      (int index) => FocusNode(
-        debugLabel: index < 5
-            ? 'Question ${index + 1} heading'
-            : 'Onboarding completion heading',
-      ),
+      5,
+      (int index) => FocusNode(debugLabel: 'Question ${index + 1} heading'),
     );
     _authenticationGateway =
         widget.authenticationGateway ??
@@ -90,8 +74,6 @@ class _OnboardingEntryFlowState extends State<OnboardingEntryFlow>
             nextStep: ResumeOnboardingNextStep(stepIndex: 0),
           ),
         );
-    _completionGateway =
-        widget.completionGateway ?? SyntheticOnboardingCompletionGateway();
   }
 
   @override
@@ -140,7 +122,7 @@ class _OnboardingEntryFlowState extends State<OnboardingEntryFlow>
         !_questionIsActive ||
         targetIndex == _activeQuestionIndex ||
         targetIndex < 0 ||
-        targetIndex > 5) {
+        targetIndex > 4) {
       return;
     }
 
@@ -350,58 +332,11 @@ class _OnboardingEntryFlowState extends State<OnboardingEntryFlow>
       ..showSnackBar(SnackBar(content: Text(message)));
   }
 
-  Future<void> _showCompletion() async {
-    setState(() {
-      _completionStage = OnboardingCompletionStage.ready;
-      _completionFailureReason = null;
-    });
-    await _goToQuestion(5);
-  }
-
-  Future<void> _submitOnboarding() async {
-    if (_completionStage == OnboardingCompletionStage.submitting) {
-      return;
-    }
-
-    setState(() {
-      _completionStage = OnboardingCompletionStage.submitting;
-      _completionFailureReason = null;
-    });
-
-    final OnboardingCompletionRequest request = OnboardingCompletionRequest(
-      submission: OnboardingSubmission(
-        accommodations: _accommodationsDraft,
-        experiencePreferences: _experiencePreferencesDraft,
-        travelComfort: _travelComfortDraft,
-        interests: _interestsDraft,
-        planningSituations: _planningSituationsDraft,
-      ),
+  void _finishCurrentOnboardingBuild(BuildContext scaffoldContext) {
+    _showMessage(
+      scaffoldContext,
+      'That is the last question. Chat is coming in the next stage.',
     );
-
-    OnboardingCompletionResult result;
-    try {
-      result = await _completionGateway.completeOnboarding(request);
-    } catch (_) {
-      result = const OnboardingCompletionFailure(
-        reason: OnboardingCompletionFailureReason.unknown,
-      );
-    }
-    if (!mounted) {
-      return;
-    }
-
-    switch (result) {
-      case OnboardingCompletionSuccess():
-        setState(() {
-          _completionStage = OnboardingCompletionStage.confirmed;
-          _completionFailureReason = null;
-        });
-      case OnboardingCompletionFailure failure:
-        setState(() {
-          _completionStage = OnboardingCompletionStage.failure;
-          _completionFailureReason = failure.reason;
-        });
-    }
   }
 
   Widget _buildQuestionScreen({
@@ -467,25 +402,8 @@ class _OnboardingEntryFlowState extends State<OnboardingEntryFlow>
         headingFocusNode: _questionHeadingFocusNodes[4],
         enabled: enabled,
         onBack: () => _goToQuestion(3),
-        onSkip: _showCompletion,
-        onContinue: _showCompletion,
-      ),
-      5 => IgnorePointer(
-        ignoring: !enabled,
-        child: OnboardingCompletionScreen(
-          key: const ValueKey<String>('onboarding_completion_screen'),
-          stage: _completionStage,
-          failureReason: _completionFailureReason,
-          headingFocusNode: _questionHeadingFocusNodes[5],
-          onBack: () => _goToQuestion(4),
-          onSubmit: _submitOnboarding,
-          onRetry: _submitOnboarding,
-          onContinue: () => _showMessage(
-            scaffoldContext,
-            'Your profile setup is confirmed in this frontend build. Chat is '
-            'coming in the next stage.',
-          ),
-        ),
+        onSkip: () => _finishCurrentOnboardingBuild(scaffoldContext),
+        onContinue: () => _finishCurrentOnboardingBuild(scaffoldContext),
       ),
       _ => throw StateError('Unsupported onboarding question index: $index'),
     };

@@ -150,7 +150,7 @@ Gate:
 - Q3 does not infer capability from disability and displays clear units.
 - No question computes priority or matching.
 
-### Phase 3 - Questions 4-5 and completion (`3:15-4:30`)
+### Phase 3 - Questions 4-5 (`3:15-4:30`)
 
 Status: implemented and independently reviewed; the connected-iPhone visual
 gate is pending.
@@ -158,20 +158,18 @@ gate is pending.
 Builders:
 
 - Q4 builder: interests and hobbies.
-- Q5 builder: functional situations and distinct None/Prefer not to say/Skip.
-- Completion builder: completion presentation, pending, failure, and confirmed
-  states without app route ownership.
+- Q5 builder: functional situations and distinct None/Skip states.
 
 Gate:
 
 - Q4 supports restaurant and activity interests.
 - Q5 mutual-exclusion and state distinctions pass tests.
-- Completion never displays success before contract confirmation.
+- Q5 does not add a submit or profile-confirmation interstitial.
 
 ### Phase 4 - Onboarding integration (`4:30-5:30`)
 
-Status: Q1-Q5 and the synthetic completion contract are integrated. Chat routing
-remains a later-stage dependency and is represented by honest frontend copy.
+Status: Q1-Q5 are integrated. Chat routing remains a later-stage dependency, so
+the current build stays on Q5 with an honest bridge message.
 
 Single owner: coordinator/integration owner.
 
@@ -181,7 +179,7 @@ Deliverables:
 - Returning-complete and returning-incomplete routing.
 - Draft preservation through forward/back/Skip.
 - Session loading, authentication failure, and expiration handling.
-- Completion contract and focus handoff.
+- Direct Q5-to-Chat handoff without a submit/confirmation page once Chat exists.
 
 Review gate:
 

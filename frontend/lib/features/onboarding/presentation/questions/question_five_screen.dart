@@ -22,7 +22,6 @@ class QuestionFiveScreen extends StatefulWidget {
 
   static const Key otherFieldKey = Key('question_five_other_field');
   static const Key noneKey = Key('question_five_none');
-  static const Key preferNotToSayKey = Key('question_five_prefer_not_to_say');
 
   static Key situationKey(PlanningSituation situation) =>
       ValueKey<String>('question_five_situation_${situation.name}');
@@ -101,14 +100,6 @@ class _QuestionFiveScreenState extends State<QuestionFiveScreen> {
     );
   }
 
-  void _changePreferNotToSay(bool selected) {
-    widget.onChanged(
-      selected
-          ? const PlanningSituationsDraft.preferNotToSay()
-          : const PlanningSituationsDraft(),
-    );
-  }
-
   void _skip() {
     widget.onChanged(const PlanningSituationsDraft.skipped());
     widget.onSkip();
@@ -155,7 +146,15 @@ class _QuestionFiveScreenState extends State<QuestionFiveScreen> {
                     _changeSituation(situation, selected),
               ),
             ),
-          const SizedBox(height: 4),
+          MultiSelectOptionTile(
+            key: QuestionFiveScreen.noneKey,
+            label: 'None',
+            description: 'None of these situations affect the places I choose.',
+            selected: widget.draft.noneApply,
+            enabled: widget.enabled,
+            onChanged: _changeNone,
+          ),
+          const SizedBox(height: 20),
           TextField(
             key: QuestionFiveScreen.otherFieldKey,
             controller: _otherController,
@@ -171,24 +170,6 @@ class _QuestionFiveScreenState extends State<QuestionFiveScreen> {
                   'Share only what would help us recommend a fitting place.',
             ),
             onChanged: _changeOther,
-          ),
-          const SizedBox(height: 24),
-          MultiSelectOptionTile(
-            key: QuestionFiveScreen.noneKey,
-            label: 'None',
-            description: 'None of these situations affect the places I choose.',
-            selected: widget.draft.noneApply,
-            enabled: widget.enabled,
-            onChanged: _changeNone,
-          ),
-          const SizedBox(height: 12),
-          MultiSelectOptionTile(
-            key: QuestionFiveScreen.preferNotToSayKey,
-            label: 'Prefer not to say',
-            description: 'Save that I chose not to share this information.',
-            selected: widget.draft.preferNotToSay,
-            enabled: widget.enabled,
-            onChanged: _changePreferNotToSay,
           ),
         ],
       ),

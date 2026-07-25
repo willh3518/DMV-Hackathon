@@ -24,7 +24,7 @@ void main() {
       );
       expect(find.textContaining('not diagnoses'), findsOneWidget);
       expect(find.textContaining('selections are not ranked'), findsOneWidget);
-      expect(find.byType(MultiSelectOptionTile), findsNWidgets(12));
+      expect(find.byType(MultiSelectOptionTile), findsNWidgets(11));
       for (final PlanningSituation situation in PlanningSituation.values) {
         expect(
           find.byKey(QuestionFiveScreen.situationKey(situation)),
@@ -33,7 +33,29 @@ void main() {
       }
       expect(find.byKey(QuestionFiveScreen.otherFieldKey), findsOneWidget);
       expect(find.byKey(QuestionFiveScreen.noneKey), findsOneWidget);
-      expect(find.byKey(QuestionFiveScreen.preferNotToSayKey), findsOneWidget);
+      expect(find.text('Prefer not to say'), findsNothing);
+      expect(
+        find.byKey(const Key('question_five_prefer_not_to_say')),
+        findsNothing,
+      );
+
+      final Finder orderedAnswers = find.descendant(
+        of: find.byKey(OnboardingQuestionShell.contentKey),
+        matching: find.byWidgetPredicate(
+          (Widget widget) =>
+              widget is MultiSelectOptionTile ||
+              widget.key == QuestionFiveScreen.otherFieldKey,
+        ),
+      );
+      expect(
+        orderedAnswers.evaluate().map((Element element) => element.widget.key),
+        <Key>[
+          for (final PlanningSituation situation in PlanningSituation.values)
+            QuestionFiveScreen.situationKey(situation),
+          QuestionFiveScreen.noneKey,
+          QuestionFiveScreen.otherFieldKey,
+        ],
+      );
     });
 
     testWidgets('None and situation answers clear each other', (
@@ -51,7 +73,6 @@ void main() {
       await _tapOption(tester, QuestionFiveScreen.noneKey);
 
       expect(controller.draft.value.noneApply, isTrue);
-      expect(controller.draft.value.preferNotToSay, isFalse);
       expect(controller.draft.value.skipped, isFalse);
       expect(controller.draft.value.situations, isEmpty);
       expect(controller.draft.value.other, isEmpty);
@@ -69,51 +90,17 @@ void main() {
       );
 
       expect(controller.draft.value.noneApply, isFalse);
-      expect(controller.draft.value.preferNotToSay, isFalse);
       expect(controller.draft.value.skipped, isFalse);
       expect(controller.draft.value.situations, <PlanningSituation>{
         PlanningSituation.largeCrowds,
       });
     });
 
-    testWidgets('Prefer not to say and situation answers clear each other', (
+    testWidgets('custom text clears None and preserves situation choices', (
       WidgetTester tester,
     ) async {
       final _HarnessController controller = _HarnessController(
-        initialDraft: const PlanningSituationsDraft(
-          situations: <PlanningSituation>{PlanningSituation.loudEnvironments},
-          other: 'Busy entrances',
-        ),
-      );
-      addTearDown(controller.dispose);
-      await tester.pumpWidget(_testApp(controller));
-
-      await _tapOption(tester, QuestionFiveScreen.preferNotToSayKey);
-
-      expect(controller.draft.value.preferNotToSay, isTrue);
-      expect(controller.draft.value.noneApply, isFalse);
-      expect(controller.draft.value.skipped, isFalse);
-      expect(controller.draft.value.situations, isEmpty);
-      expect(controller.draft.value.other, isEmpty);
-
-      await _tapOption(
-        tester,
-        QuestionFiveScreen.situationKey(PlanningSituation.complexInstructions),
-      );
-
-      expect(controller.draft.value.preferNotToSay, isFalse);
-      expect(controller.draft.value.noneApply, isFalse);
-      expect(controller.draft.value.skipped, isFalse);
-      expect(controller.draft.value.situations, <PlanningSituation>{
-        PlanningSituation.complexInstructions,
-      });
-    });
-
-    testWidgets('custom text clears skipped and preserves situation choices', (
-      WidgetTester tester,
-    ) async {
-      final _HarnessController controller = _HarnessController(
-        initialDraft: const PlanningSituationsDraft.skipped(),
+        initialDraft: const PlanningSituationsDraft.none(),
       );
       addTearDown(controller.dispose);
       await tester.pumpWidget(_testApp(controller));
@@ -126,7 +113,6 @@ void main() {
       expect(controller.draft.value.other, 'Long waits without seating');
       expect(controller.draft.value.skipped, isFalse);
       expect(controller.draft.value.noneApply, isFalse);
-      expect(controller.draft.value.preferNotToSay, isFalse);
 
       await _tapOption(
         tester,
@@ -141,7 +127,7 @@ void main() {
       });
     });
 
-    testWidgets('keeps None, decline, and Skip as distinct states', (
+    testWidgets('keeps None and Skip as distinct states', (
       WidgetTester tester,
     ) async {
       final _HarnessController controller = _HarnessController();
@@ -150,19 +136,12 @@ void main() {
 
       await _tapOption(tester, QuestionFiveScreen.noneKey);
       expect(controller.draft.value.noneApply, isTrue);
-      expect(controller.draft.value.preferNotToSay, isFalse);
-      expect(controller.draft.value.skipped, isFalse);
-
-      await _tapOption(tester, QuestionFiveScreen.preferNotToSayKey);
-      expect(controller.draft.value.noneApply, isFalse);
-      expect(controller.draft.value.preferNotToSay, isTrue);
       expect(controller.draft.value.skipped, isFalse);
 
       controller.events.clear();
       await _tapOption(tester, OnboardingQuestionShell.skipButtonKey);
 
       expect(controller.draft.value.noneApply, isFalse);
-      expect(controller.draft.value.preferNotToSay, isFalse);
       expect(controller.draft.value.skipped, isTrue);
       expect(controller.draft.value.hasAnswer, isFalse);
       expect(controller.skipCount, 1);
@@ -231,10 +210,8 @@ void main() {
       addTearDown(controller.dispose);
       await tester.pumpWidget(_testApp(controller));
 
-      final Finder preferNotToSay = find.byKey(
-        QuestionFiveScreen.preferNotToSayKey,
-      );
-      await tester.ensureVisible(preferNotToSay);
+      final Finder otherField = find.byKey(QuestionFiveScreen.otherFieldKey);
+      await tester.ensureVisible(otherField);
       await tester.pump();
 
       final Finder continueButton = find.byKey(
@@ -244,7 +221,9 @@ void main() {
       await tester.pump();
 
       expect(find.byKey(OnboardingQuestionShell.scrollViewKey), findsOneWidget);
-      expect(preferNotToSay, findsOneWidget);
+      expect(find.byKey(QuestionFiveScreen.noneKey), findsOneWidget);
+      expect(otherField, findsOneWidget);
+      expect(find.text('Prefer not to say'), findsNothing);
       expect(continueButton, findsOneWidget);
       expect(tester.takeException(), isNull);
     });

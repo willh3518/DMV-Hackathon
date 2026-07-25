@@ -176,11 +176,11 @@ Question semantics are:
 
 | ID | Requirement | Acceptance criteria |
 | --- | --- | --- |
-| ONB-001 | Every question shall be optional. | Each has Skip; skipped is stored distinctly from None, not applicable, or Prefer not to say. |
+| ONB-001 | Every question shall be optional. | Each has Skip; skipped is stored distinctly from None or not applicable. |
 | ONB-002 | Answers shall persist while moving forward and backward. | Widget/integration tests navigate away and back with selections intact. |
 | ONB-003 | Multi-select shall not auto-advance. | Continue is explicit and disabled only when an approved validation rule requires it. |
 | ONB-004 | Sensitive prompts shall explain why they help and that they can be changed. | Copy is visible and semantically readable on all five questions. |
-| ONB-005 | Completion shall route to Chat only after the completion contract confirms. | Loading, error, and retry states prevent false completion. |
+| ONB-005 | Q5 shall hand off directly to Chat when Chat is implemented, without a submit or profile-confirmation interstitial. | The current frontend-only build stays on Q5 with an honest bridge message instead of rendering a false destination. |
 | ONB-006 | Final option inventory shall remain configurable pending content approval. | No document claim treats the working list as final production copy. |
 
 ### Q1 - Accommodations
@@ -250,13 +250,13 @@ Working prompt: **Are there situations we should avoid or plan around?**
 Working categories: stairs; long periods of standing; narrow or crowded spaces;
 loud environments; flashing or intense lighting; long travel distances; complex
 instructions; unexpected physical contact; large crowds; limited restroom
-access; None; Something else; Prefer not to say.
+access; None; Something else.
 
 | ID | Requirement | Acceptance criteria |
 | --- | --- | --- |
 | Q5-001 | Q5 shall use functional situations, not require "physical and mental limitations" disclosure. | Copy review finds no diagnosis requirement or stigmatizing framing. |
 | Q5-002 | None shall be mutually exclusive with constraint selections. | Selecting None clears constraints only after predictable UI feedback; tests cover both directions. |
-| Q5-003 | Prefer not to say, None, and unanswered shall remain distinct. | All three are represented by separate fixture/domain states. |
+| Q5-003 | None, Skip, and unanswered shall remain distinct. | All three are represented by separate fixture/domain states; no separate Prefer not to say option is rendered. |
 
 ## Chat requirements
 
@@ -306,7 +306,7 @@ error, and missing external-action data.
 | ID | Requirement | Acceptance criteria |
 | --- | --- | --- |
 | PROF-001 | Profile shall expose initial loading, load failure, and retry states before profile content is available. | Loading does not show fabricated profile values; a failed load provides Retry and a successful retry renders the contract-supplied profile. |
-| PROF-002 | Profile shall summarize and edit all five onboarding sections. | Skipped, None, Prefer not to say, custom, and selected states render accurately. |
+| PROF-002 | Profile shall summarize and edit all five onboarding sections. | Skipped, None, custom, and selected states render accurately. |
 | PROF-003 | Save shall expose idle, loading, success, and failure states. | Failed save preserves local edits and offers Retry. |
 | PROF-004 | Profile shall provide account, Terms, Privacy, sign-out, and delete-account entry points. | All are reachable by screen reader and keyboard without adding a third tab. |
 | PROF-005 | Chat and Profile shall be the only persistent main tabs. | Navigation tests find exactly two persistent destinations. |
@@ -410,7 +410,7 @@ external-action availability.
 The fixture suite shall include:
 
 - authentication success, validation, failure, incomplete profile, and expired session;
-- onboarding empty, partial, skipped, None, Prefer not to say, and custom answers;
+- onboarding empty, partial, skipped, None, and custom answers;
 - restaurant and activity results;
 - declared/observed agreement and disagreement;
 - strength, concern, unknown, partial evidence, and missing optional fields;
@@ -443,8 +443,8 @@ The fixture suite shall include:
 
 - Authentication currently uses a synthetic gateway; real session, recovery,
   verification, and persistence behavior remain external dependencies.
-- All five questions use controlled in-memory drafts and a typed synthetic
-  completion contract; real profile persistence is not yet connected.
+- All five questions use controlled in-memory drafts; real profile persistence
+  and the direct Q5-to-Chat handoff are not yet connected.
 - Chat, Profile, recommendations, detail, location, legal, and account-management
   surfaces are not yet implemented.
 
