@@ -10,6 +10,10 @@ abstract final class AppTheme {
       surface: AppColors.surface,
       onSurface: AppColors.textPrimary,
     );
+    const OutlineInputBorder inputBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(20)),
+      borderSide: BorderSide(color: AppColors.outline),
+    );
 
     return ThemeData(
       useMaterial3: true,
@@ -73,6 +77,68 @@ abstract final class AppTheme {
           disabledForegroundColor: AppColors.primaryStrong,
           shape: const StadiumBorder(),
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationThemeData(
+        filled: true,
+        fillColor: AppColors.surface,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 18,
+          vertical: 17,
+        ),
+        labelStyle: const TextStyle(
+          color: AppColors.textSecondary,
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+        ),
+        floatingLabelStyle: const TextStyle(
+          color: AppColors.primaryStrong,
+          fontSize: 16,
+          fontWeight: FontWeight.w700,
+        ),
+        hintStyle: const TextStyle(
+          color: AppColors.textSecondary,
+          fontSize: 16,
+        ),
+        helperStyle: const TextStyle(
+          color: AppColors.textSecondary,
+          fontSize: 14,
+          height: 1.35,
+        ),
+        helperMaxLines: 3,
+        errorStyle: TextStyle(
+          color: colorScheme.error,
+          fontSize: 14,
+          height: 1.35,
+          fontWeight: FontWeight.w600,
+        ),
+        errorMaxLines: 3,
+        prefixIconColor: AppColors.textSecondary,
+        suffixIconColor: AppColors.primaryStrong,
+        prefixIconConstraints: const BoxConstraints(
+          minWidth: 48,
+          minHeight: 48,
+        ),
+        suffixIconConstraints: const BoxConstraints(
+          minWidth: 48,
+          minHeight: 48,
+        ),
+        border: inputBorder,
+        enabledBorder: inputBorder,
+        disabledBorder: inputBorder.copyWith(
+          borderSide: const BorderSide(color: AppColors.surfaceBlueStrong),
+        ),
+        focusedBorder: inputBorder.copyWith(
+          borderSide: const BorderSide(
+            color: AppColors.primaryStrong,
+            width: 2,
+          ),
+        ),
+        errorBorder: inputBorder.copyWith(
+          borderSide: BorderSide(color: colorScheme.error, width: 1.5),
+        ),
+        focusedErrorBorder: inputBorder.copyWith(
+          borderSide: BorderSide(color: colorScheme.error, width: 2),
         ),
       ),
       snackBarTheme: const SnackBarThemeData(
