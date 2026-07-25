@@ -129,7 +129,7 @@ Phone approval gate:
 
 ### Phase 2 - Questions 1-3 in parallel (`2:00-3:15`)
 
-Status: implemented and awaiting the Phase 2 independent review and phone gate.
+Status: implemented and visually approved on the connected iPhone.
 
 Builders:
 
@@ -152,6 +152,9 @@ Gate:
 
 ### Phase 3 - Questions 4-5 and completion (`3:15-4:30`)
 
+Status: implemented and independently reviewed; the connected-iPhone visual
+gate is pending.
+
 Builders:
 
 - Q4 builder: interests and hobbies.
@@ -166,6 +169,9 @@ Gate:
 - Completion never displays success before contract confirmation.
 
 ### Phase 4 - Onboarding integration (`4:30-5:30`)
+
+Status: Q1-Q5 and the synthetic completion contract are integrated. Chat routing
+remains a later-stage dependency and is represented by honest frontend copy.
 
 Single owner: coordinator/integration owner.
 

@@ -190,13 +190,13 @@ Working prompt: **What accommodations help you?**
 Working categories: step-free access; wheelchair-accessible spaces; accessible
 restroom; accessible parking; seating accommodations; low-vision support;
 hearing or communication support; service-animal access; staff assistance;
-Something else; Prefer not to say.
+Something else.
 
 | ID | Requirement | Acceptance criteria |
 | --- | --- | --- |
 | Q1-001 | Q1 shall support multiple constraint candidates and an optional custom answer. | Selected/unselected semantics are announced and custom input is optional. |
 | Q1-002 | Q1 shall not require a diagnosis. | No required field asks for disability or medical history. |
-| Q1-003 | Prefer not to say shall remain distinct from no accommodations. | Domain and fixture states are separately testable. |
+| Q1-003 | Q1 shall use the shared Skip action as its only decline-to-answer path. | No separate "Prefer not to say" accommodation choice is rendered; Skip remains distinct from an unanswered draft. |
 
 ### Q2 - Food, service, communication, and environment
 
@@ -443,8 +443,8 @@ The fixture suite shall include:
 
 - Authentication currently uses a synthetic gateway; real session, recovery,
   verification, and persistence behavior remain external dependencies.
-- Questions 1-3 use controlled in-memory drafts; Questions 4-5 and real profile
-  persistence are not yet connected.
+- All five questions use controlled in-memory drafts and a typed synthetic
+  completion contract; real profile persistence is not yet connected.
 - Chat, Profile, recommendations, detail, location, legal, and account-management
   surfaces are not yet implemented.
 

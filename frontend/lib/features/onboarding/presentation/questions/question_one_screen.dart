@@ -16,7 +16,6 @@ class QuestionOneScreen extends StatefulWidget {
   });
 
   static const Key otherFieldKey = Key('question_one_other_field');
-  static const Key preferNotToSayKey = Key('question_one_prefer_not_to_say');
 
   static Key optionKey(AccommodationOption option) {
     return ValueKey<AccommodationOption>(option);
@@ -73,27 +72,14 @@ class _QuestionOneScreenState extends State<QuestionOneScreen> {
     widget.onChanged(
       AccommodationsDraft(
         options: Set<AccommodationOption>.unmodifiable(nextOptions),
-        other: widget.draft.preferNotToSay ? '' : widget.draft.other,
+        other: widget.draft.other,
       ),
     );
   }
 
   void _changeOther(String value) {
     widget.onChanged(
-      AccommodationsDraft(
-        options: widget.draft.preferNotToSay
-            ? const <AccommodationOption>{}
-            : widget.draft.options,
-        other: value,
-      ),
-    );
-  }
-
-  void _changePreferNotToSay(bool selected) {
-    widget.onChanged(
-      selected
-          ? const AccommodationsDraft.preferNotToSay()
-          : const AccommodationsDraft(),
+      AccommodationsDraft(options: widget.draft.options, other: value),
     );
   }
 
@@ -152,16 +138,6 @@ class _QuestionOneScreenState extends State<QuestionOneScreen> {
                   'Share only what would help us find a place that fits.',
             ),
             onChanged: _changeOther,
-          ),
-          const SizedBox(height: 24),
-          MultiSelectOptionTile(
-            key: QuestionOneScreen.preferNotToSayKey,
-            label: 'Prefer not to say',
-            description:
-                'Record that you prefer not to share accommodation details.',
-            selected: widget.draft.preferNotToSay,
-            enabled: widget.enabled,
-            onChanged: _changePreferNotToSay,
           ),
         ],
       ),

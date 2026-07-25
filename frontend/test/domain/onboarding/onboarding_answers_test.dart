@@ -3,26 +3,23 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('Phase 2 onboarding drafts', () {
-    test(
-      'distinguishes unanswered, answered, skipped, and prefer not to say',
-      () {
-        const AccommodationsDraft unanswered = AccommodationsDraft();
-        const AccommodationsDraft answered = AccommodationsDraft(
-          options: <AccommodationOption>{AccommodationOption.stepFreeAccess},
-        );
-        const AccommodationsDraft skipped = AccommodationsDraft.skipped();
-        const AccommodationsDraft preferNotToSay =
-            AccommodationsDraft.preferNotToSay();
+    test('distinguishes unanswered, answered, and skipped states', () {
+      const AccommodationsDraft unanswered = AccommodationsDraft();
+      const AccommodationsDraft answered = AccommodationsDraft(
+        options: <AccommodationOption>{AccommodationOption.stepFreeAccess},
+      );
+      const AccommodationsDraft skipped = AccommodationsDraft.skipped();
 
-        expect(unanswered.hasAnswer, isFalse);
-        expect(answered.hasAnswer, isTrue);
-        expect(skipped.hasAnswer, isFalse);
-        expect(skipped.skipped, isTrue);
-        expect(preferNotToSay.hasAnswer, isTrue);
-        expect(preferNotToSay.preferNotToSay, isTrue);
-        expect(preferNotToSay.skipped, isFalse);
-      },
-    );
+      expect(unanswered.hasAnswer, isFalse);
+      expect(unanswered.skipped, isFalse);
+      expect(answered.hasAnswer, isTrue);
+      expect(answered.skipped, isFalse);
+      expect(answered.options, contains(AccommodationOption.stepFreeAccess));
+      expect(skipped.hasAnswer, isFalse);
+      expect(skipped.skipped, isTrue);
+      expect(skipped.options, isEmpty);
+      expect(skipped.other, isEmpty);
+    });
 
     test('keeps dietary requirements separate from other preferences', () {
       const ExperiencePreferencesDraft draft = ExperiencePreferencesDraft(
@@ -124,5 +121,37 @@ void main() {
         expect(validDraft.hasAnswer, isTrue);
       },
     );
+
+    test('keeps interests optional and Skip distinct', () {
+      const InterestsDraft answered = InterestsDraft(
+        options: <InterestOption>{
+          InterestOption.restaurantsAndCafes,
+          InterestOption.museums,
+        },
+      );
+      const InterestsDraft skipped = InterestsDraft.skipped();
+
+      expect(answered.hasAnswer, isTrue);
+      expect(skipped.hasAnswer, isFalse);
+      expect(skipped.skipped, isTrue);
+    });
+
+    test('distinguishes Q5 None, Prefer not to say, Skip, and answers', () {
+      const PlanningSituationsDraft answered = PlanningSituationsDraft(
+        situations: <PlanningSituation>{PlanningSituation.loudEnvironments},
+      );
+      const PlanningSituationsDraft none = PlanningSituationsDraft.none();
+      const PlanningSituationsDraft preferNotToSay =
+          PlanningSituationsDraft.preferNotToSay();
+      const PlanningSituationsDraft skipped = PlanningSituationsDraft.skipped();
+
+      expect(answered.hasAnswer, isTrue);
+      expect(none.noneApply, isTrue);
+      expect(none.hasAnswer, isTrue);
+      expect(preferNotToSay.preferNotToSay, isTrue);
+      expect(preferNotToSay.hasAnswer, isTrue);
+      expect(skipped.skipped, isTrue);
+      expect(skipped.hasAnswer, isFalse);
+    });
   });
 }

@@ -19,28 +19,18 @@ final class AccommodationsDraft {
   const AccommodationsDraft({
     this.options = const <AccommodationOption>{},
     this.other = '',
-  }) : preferNotToSay = false,
-       skipped = false;
-
-  const AccommodationsDraft.preferNotToSay()
-    : options = const <AccommodationOption>{},
-      other = '',
-      preferNotToSay = true,
-      skipped = false;
+  }) : skipped = false;
 
   const AccommodationsDraft.skipped()
     : options = const <AccommodationOption>{},
       other = '',
-      preferNotToSay = false,
       skipped = true;
 
   final Set<AccommodationOption> options;
   final String other;
-  final bool preferNotToSay;
   final bool skipped;
 
-  bool get hasAnswer =>
-      preferNotToSay || options.isNotEmpty || other.trim().isNotEmpty;
+  bool get hasAnswer => options.isNotEmpty || other.trim().isNotEmpty;
 }
 
 /// Cuisine and food preferences used by Question 2.
@@ -168,4 +158,113 @@ final class TravelComfortDraft {
     }
     return hasValidCustomAnswer;
   }
+}
+
+/// Place and activity interests used by Question 4.
+enum InterestOption {
+  restaurantsAndCafes,
+  museums,
+  parksAndNature,
+  shopping,
+  liveMusic,
+  moviesAndTheater,
+  sports,
+  games,
+  artsAndCrafts,
+  socialActivities,
+  familyActivities,
+}
+
+/// Controlled draft state for Question 4.
+final class InterestsDraft {
+  const InterestsDraft({
+    this.options = const <InterestOption>{},
+    this.other = '',
+  }) : skipped = false;
+
+  const InterestsDraft.skipped()
+    : options = const <InterestOption>{},
+      other = '',
+      skipped = true;
+
+  final Set<InterestOption> options;
+  final String other;
+  final bool skipped;
+
+  bool get hasAnswer => options.isNotEmpty || other.trim().isNotEmpty;
+}
+
+/// Functional situations a person may want a place recommendation to avoid or
+/// plan around. These do not encode a diagnosis.
+enum PlanningSituation {
+  stairs,
+  longPeriodsOfStanding,
+  narrowOrCrowdedSpaces,
+  loudEnvironments,
+  flashingOrIntenseLighting,
+  longTravelDistances,
+  complexInstructions,
+  unexpectedPhysicalContact,
+  largeCrowds,
+  limitedRestroomAccess,
+}
+
+/// Controlled draft state for Question 5.
+final class PlanningSituationsDraft {
+  const PlanningSituationsDraft({
+    this.situations = const <PlanningSituation>{},
+    this.other = '',
+  }) : noneApply = false,
+       preferNotToSay = false,
+       skipped = false;
+
+  const PlanningSituationsDraft.none()
+    : situations = const <PlanningSituation>{},
+      other = '',
+      noneApply = true,
+      preferNotToSay = false,
+      skipped = false;
+
+  const PlanningSituationsDraft.preferNotToSay()
+    : situations = const <PlanningSituation>{},
+      other = '',
+      noneApply = false,
+      preferNotToSay = true,
+      skipped = false;
+
+  const PlanningSituationsDraft.skipped()
+    : situations = const <PlanningSituation>{},
+      other = '',
+      noneApply = false,
+      preferNotToSay = false,
+      skipped = true;
+
+  final Set<PlanningSituation> situations;
+  final String other;
+  final bool noneApply;
+  final bool preferNotToSay;
+  final bool skipped;
+
+  bool get hasAnswer =>
+      noneApply ||
+      preferNotToSay ||
+      situations.isNotEmpty ||
+      other.trim().isNotEmpty;
+}
+
+/// Complete five-question draft passed to the external completion contract.
+final class OnboardingSubmission {
+  const OnboardingSubmission({
+    required this.accommodations,
+    required this.experiencePreferences,
+    required this.travelComfort,
+    required this.interests,
+    required this.planningSituations,
+  });
+
+  final AccommodationsDraft accommodations;
+  final ExperiencePreferencesDraft experiencePreferences;
+  final TravelComfortDraft travelComfort;
+  final InterestsDraft interests;
+  final PlanningSituationsDraft planningSituations;
 }

@@ -25,7 +25,7 @@ void main() {
           ),
         );
 
-        expect(find.byType(MultiSelectOptionTile), findsNWidgets(10));
+        expect(find.byType(MultiSelectOptionTile), findsNWidgets(9));
         for (final AccommodationOption option in AccommodationOption.values) {
           expect(
             find.byKey(QuestionOneScreen.optionKey(option)),
@@ -57,66 +57,58 @@ void main() {
       },
     );
 
-    testWidgets('Prefer not to say clears and stays exclusive from answers', (
-      WidgetTester tester,
-    ) async {
-      final GlobalKey<_QuestionOneHarnessState> key =
-          GlobalKey<_QuestionOneHarnessState>();
-      await tester.pumpWidget(
-        _testApp(
-          child: _QuestionOneHarness(
-            key: key,
-            initialDraft: const AccommodationsDraft(
-              options: <AccommodationOption>{
-                AccommodationOption.accessibleParking,
-              },
-              other: 'A place to rest near the entrance',
+    testWidgets(
+      'omits Prefer not to say and keeps Skip as the no-share state',
+      (WidgetTester tester) async {
+        final GlobalKey<_QuestionOneHarnessState> key =
+            GlobalKey<_QuestionOneHarnessState>();
+        await tester.pumpWidget(
+          _testApp(
+            child: _QuestionOneHarness(
+              key: key,
+              initialDraft: const AccommodationsDraft(
+                options: <AccommodationOption>{
+                  AccommodationOption.accessibleParking,
+                },
+                other: 'A place to rest near the entrance',
+              ),
             ),
           ),
-        ),
-      );
+        );
 
-      expect(
-        find.text('Record that you prefer not to share accommodation details.'),
-        findsOneWidget,
-      );
-      expect(find.text('Skip sharing accommodation details.'), findsNothing);
+        expect(find.text('Prefer not to say'), findsNothing);
+        expect(
+          find.text(
+            'Record that you prefer not to share accommodation details.',
+          ),
+          findsNothing,
+        );
 
-      final Finder preferNotToSay = find.byKey(
-        QuestionOneScreen.preferNotToSayKey,
-      );
-      await tester.ensureVisible(preferNotToSay);
-      await tester.pump();
-      await tester.tap(preferNotToSay);
-      await tester.pump();
+        final Finder skipButton = find.byKey(
+          OnboardingQuestionShell.skipButtonKey,
+        );
+        expect(skipButton, findsOneWidget);
+        await tester.ensureVisible(skipButton);
+        await tester.pump();
+        await tester.tap(skipButton);
+        await tester.pump();
 
-      expect(key.currentState?.draft.preferNotToSay, isTrue);
-      expect(key.currentState?.draft.options, isEmpty);
-      expect(key.currentState?.draft.other, isEmpty);
-      expect(
-        tester
-            .widget<TextField>(find.byKey(QuestionOneScreen.otherFieldKey))
-            .controller
-            ?.text,
-        isEmpty,
-      );
+        expect(key.currentState?.draft.skipped, isTrue);
+        expect(key.currentState?.draft.hasAnswer, isFalse);
+        expect(key.currentState?.draft.options, isEmpty);
+        expect(key.currentState?.draft.other, isEmpty);
+        expect(key.currentState?.skipCount, 1);
+        expect(
+          tester
+              .widget<TextField>(find.byKey(QuestionOneScreen.otherFieldKey))
+              .controller
+              ?.text,
+          isEmpty,
+        );
+      },
+    );
 
-      final Finder parking = find.byKey(
-        QuestionOneScreen.optionKey(AccommodationOption.accessibleParking),
-      );
-      await tester.ensureVisible(parking);
-      await tester.pump();
-      await tester.tap(parking);
-      await tester.pump();
-
-      expect(key.currentState?.draft.preferNotToSay, isFalse);
-      expect(
-        key.currentState?.draft.options,
-        contains(AccommodationOption.accessibleParking),
-      );
-    });
-
-    testWidgets('custom text and Skip produce distinct controlled states', (
+    testWidgets('custom text clears a prior skipped state', (
       WidgetTester tester,
     ) async {
       final GlobalKey<_QuestionOneHarnessState> key =
@@ -137,19 +129,8 @@ void main() {
 
       expect(key.currentState?.draft.other, 'Space for a mobility device');
       expect(key.currentState?.draft.skipped, isFalse);
-      expect(key.currentState?.draft.preferNotToSay, isFalse);
-
-      final Finder skipButton = find.byKey(
-        OnboardingQuestionShell.skipButtonKey,
-      );
-      await tester.ensureVisible(skipButton);
-      await tester.pump();
-      await tester.tap(skipButton);
-      await tester.pump();
-
-      expect(key.currentState?.draft.skipped, isTrue);
-      expect(key.currentState?.draft.hasAnswer, isFalse);
-      expect(key.currentState?.skipCount, 1);
+      expect(key.currentState?.draft.hasAnswer, isTrue);
+      expect(key.currentState?.skipCount, 0);
     });
 
     testWidgets('exposes selected semantics and a labeled custom field', (
@@ -213,10 +194,8 @@ void main() {
 
       await tester.pumpWidget(_testApp(child: const _QuestionOneHarness()));
 
-      final Finder preferNotToSay = find.byKey(
-        QuestionOneScreen.preferNotToSayKey,
-      );
-      await tester.ensureVisible(preferNotToSay);
+      final Finder otherField = find.byKey(QuestionOneScreen.otherFieldKey);
+      await tester.ensureVisible(otherField);
       await tester.pump();
       await tester.ensureVisible(
         find.byKey(OnboardingQuestionShell.continueButtonKey),
@@ -224,7 +203,8 @@ void main() {
       await tester.pump();
 
       expect(find.byKey(OnboardingQuestionShell.scrollViewKey), findsOneWidget);
-      expect(preferNotToSay, findsOneWidget);
+      expect(otherField, findsOneWidget);
+      expect(find.text('Prefer not to say'), findsNothing);
       expect(
         find.byKey(OnboardingQuestionShell.continueButtonKey),
         findsOneWidget,
