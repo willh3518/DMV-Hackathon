@@ -73,7 +73,11 @@ Declared information might say that a wheelchair-accessible entrance exists. Obs
 
 ## Repository status
 
-The repository contains a mobile Flutter frontend scaffold under `frontend/` and project-level agent workflow documentation.
+The repository contains a mobile Flutter frontend under `frontend/` and
+project-level agent workflow documentation. The current frontend prototype
+includes landing and authentication, five-question onboarding, a conversational
+place finder, personalized recommendation and evidence details, and a profile
+area with legal and account controls.
 
 Current frontend targets:
 
@@ -82,7 +86,9 @@ Current frontend targets:
 
 `accessibility_frontend` is an internal package identifier, not the final product name.
 
-Backend services are owned separately. The frontend consumes agreed, typed contracts and uses synthetic fixtures while those services are unavailable.
+Backend services are owned separately. The frontend consumes agreed, typed
+contracts and uses clearly synthetic fixtures while authentication, persistence,
+discovery, location, legal, and account services are unavailable.
 
 ## Frontend setup
 

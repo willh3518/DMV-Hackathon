@@ -152,8 +152,8 @@ Gate:
 
 ### Phase 3 - Questions 4-5 (`3:15-4:30`)
 
-Status: implemented and independently reviewed; the connected-iPhone visual
-gate is pending.
+Status: implemented, independently reviewed, and approved in the connected
+iPhone flow.
 
 Builders:
 
@@ -168,8 +168,8 @@ Gate:
 
 ### Phase 4 - Onboarding integration (`4:30-5:30`)
 
-Status: Q1-Q5 are integrated. Chat routing remains a later-stage dependency, so
-the current build stays on Q5 with an honest bridge message.
+Status: implemented. Q1-Q5 are integrated, Question 5 hands its in-memory draft
+directly to Chat, and no submit or profile-confirmation interstitial is shown.
 
 Single owner: coordinator/integration owner.
 
@@ -191,6 +191,9 @@ Phone approval gate:
 - User completes and reverses the full onboarding flow on iPhone.
 
 ### Phase 5 - Chat, Profile, and Recommendations in parallel (`5:30-8:30`)
+
+Status: implemented with typed provider-neutral contracts and synthetic
+fixtures; integrated phone review is the remaining visual gate.
 
 Builders:
 
@@ -227,6 +230,12 @@ Phone approval gate:
   before application integration.
 
 ### Phase 6 - Single-owner application integration (`8:30-10:00`)
+
+Status: core frontend integration implemented. The two-tab shell, onboarding
+handoff, in-memory profile transfer, recommendation detail routes, legal
+placeholders, and account exit callbacks are connected. Real session,
+location/manual-area, external-action, persistence, and service wiring remain
+contract dependencies.
 
 Single owner: coordinator/integration owner.
 

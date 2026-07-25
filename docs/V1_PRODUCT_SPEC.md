@@ -180,7 +180,7 @@ Question semantics are:
 | ONB-002 | Answers shall persist while moving forward and backward. | Widget/integration tests navigate away and back with selections intact. |
 | ONB-003 | Multi-select shall not auto-advance. | Continue is explicit and disabled only when an approved validation rule requires it. |
 | ONB-004 | Sensitive prompts shall explain why they help and that they can be changed. | Copy is visible and semantically readable on all five questions. |
-| ONB-005 | Q5 shall hand off directly to Chat when Chat is implemented, without a submit or profile-confirmation interstitial. | The current frontend-only build stays on Q5 with an honest bridge message instead of rendering a false destination. |
+| ONB-005 | Q5 shall hand off directly to Chat when Chat is implemented, without a submit or profile-confirmation interstitial. | The frontend integration test completes Q5, opens Chat directly, and confirms that neither interstitial exists. |
 | ONB-006 | Final option inventory shall remain configurable pending content approval. | No document claim treats the working list as final production copy. |
 
 ### Q1 - Accommodations
@@ -443,10 +443,18 @@ The fixture suite shall include:
 
 - Authentication currently uses a synthetic gateway; real session, recovery,
   verification, and persistence behavior remain external dependencies.
-- All five questions use controlled in-memory drafts; real profile persistence
-  and the direct Q5-to-Chat handoff are not yet connected.
-- Chat, Profile, recommendations, detail, location, legal, and account-management
-  surfaces are not yet implemented.
+- All five questions use controlled in-memory drafts. The direct Q5-to-Chat
+  handoff and in-memory Profile transfer are connected, but persistence across
+  launches remains an external dependency.
+- Chat, Profile, recommendations, declared/observed evidence detail, explicit
+  legal placeholders, sign out, and delete-account presentation are implemented
+  against synthetic contracts.
+- Location currently uses a clearly identified Washington, DC frontend fixture.
+  Just-in-time permission, manual city/area selection, and retention policy
+  remain external/product dependencies.
+- Directions and call actions are synthetic launch fixtures. Approved legal
+  copy, real external actions, and confirmed deletion behavior remain external
+  dependencies.
 
 ## Frontend MVP demo-candidate definition of done
 

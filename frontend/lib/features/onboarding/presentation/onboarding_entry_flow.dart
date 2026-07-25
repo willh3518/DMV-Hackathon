@@ -16,9 +16,16 @@ import 'package:accessibility_frontend/fixtures/synthetic_authentication_gateway
 import 'package:flutter/material.dart';
 
 class OnboardingEntryFlow extends StatefulWidget {
-  const OnboardingEntryFlow({this.authenticationGateway, super.key});
+  const OnboardingEntryFlow({
+    this.authenticationGateway,
+    this.onOpenChat,
+    this.onCompleteOnboarding,
+    super.key,
+  });
 
   final AuthenticationGateway? authenticationGateway;
+  final VoidCallback? onOpenChat;
+  final ValueChanged<OnboardingSubmission>? onCompleteOnboarding;
 
   @override
   State<OnboardingEntryFlow> createState() => _OnboardingEntryFlowState();
@@ -70,9 +77,7 @@ class _OnboardingEntryFlowState extends State<OnboardingEntryFlow>
     _authenticationGateway =
         widget.authenticationGateway ??
         SyntheticAuthenticationGateway(
-          signInResult: AuthenticationSuccess(
-            nextStep: ResumeOnboardingNextStep(stepIndex: 0),
-          ),
+          signInResult: AuthenticationSuccess(nextStep: OpenChatNextStep()),
         );
   }
 
@@ -310,12 +315,17 @@ class _OnboardingEntryFlowState extends State<OnboardingEntryFlow>
         final int availableIndex = resume.stepIndex.clamp(0, 4);
         await _showQuestion(initialIndex: availableIndex);
       case OpenChatNextStep():
-        _showMessageWithMessenger(
-          rootMessenger,
-          'Your account is ready. Chat will connect from the home screen in '
-          'a later build.',
-        );
-        _restoreLandingFocus(originFocusNode);
+        final VoidCallback? onOpenChat = widget.onOpenChat;
+        if (onOpenChat != null) {
+          onOpenChat();
+        } else {
+          _showMessageWithMessenger(
+            rootMessenger,
+            'Your account is ready. Chat will connect from the home screen in '
+            'a later build.',
+          );
+          _restoreLandingFocus(originFocusNode);
+        }
     }
   }
 
@@ -333,6 +343,25 @@ class _OnboardingEntryFlowState extends State<OnboardingEntryFlow>
   }
 
   void _finishCurrentOnboardingBuild(BuildContext scaffoldContext) {
+    final ValueChanged<OnboardingSubmission>? onCompleteOnboarding =
+        widget.onCompleteOnboarding;
+    if (onCompleteOnboarding != null) {
+      onCompleteOnboarding(
+        OnboardingSubmission(
+          accommodations: _accommodationsDraft,
+          experiencePreferences: _experiencePreferencesDraft,
+          travelComfort: _travelComfortDraft,
+          interests: _interestsDraft,
+          planningSituations: _planningSituationsDraft,
+        ),
+      );
+      return;
+    }
+    final VoidCallback? onOpenChat = widget.onOpenChat;
+    if (onOpenChat != null) {
+      onOpenChat();
+      return;
+    }
     _showMessage(
       scaffoldContext,
       'That is the last question. Chat is coming in the next stage.',

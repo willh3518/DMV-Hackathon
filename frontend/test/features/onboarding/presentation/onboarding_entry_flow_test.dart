@@ -1,4 +1,5 @@
 import 'package:accessibility_frontend/contracts/authentication_gateway.dart';
+import 'package:accessibility_frontend/app/main_app_shell.dart';
 import 'package:accessibility_frontend/design_system/components/multi_select_option_tile.dart';
 import 'package:accessibility_frontend/design_system/app_theme.dart';
 import 'package:accessibility_frontend/domain/authentication/authentication_models.dart';
@@ -8,6 +9,7 @@ import 'package:accessibility_frontend/features/onboarding/presentation/question
 import 'package:accessibility_frontend/features/onboarding/presentation/questions/question_one_screen.dart';
 import 'package:accessibility_frontend/features/onboarding/presentation/questions/question_two_screen.dart';
 import 'package:accessibility_frontend/features/onboarding/presentation/widgets/onboarding_question_shell.dart';
+import 'package:accessibility_frontend/features/profile/presentation/profile_screen.dart';
 import 'package:accessibility_frontend/fixtures/synthetic_authentication_gateway.dart';
 import 'package:accessibility_frontend/main.dart';
 import 'package:flutter/material.dart';
@@ -105,6 +107,23 @@ void main() {
       find.byKey(const Key('sign_in_button')),
     );
     expect(signInButton.focusNode?.hasFocus, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('default returning-user sign in opens Chat', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const MainApp());
+
+    await _completeSignIn(tester);
+
+    expect(find.text('Find a place'), findsOneWidget);
+    expect(find.byKey(MainAppShell.navigationBarKey), findsOneWidget);
+
+    await tester.tap(find.byKey(MainAppShell.profileDestinationKey));
+    await tester.pumpAndSettle();
+    expect(find.byKey(ProfileScreen.loadErrorKey), findsOneWidget);
+    expect(find.text('Step-free access'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -245,7 +264,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('finishing Q5 stays on Q5 without a submit or confirmed page', (
+  testWidgets('finishing Q5 opens Chat without a submit or confirmed page', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const MainApp());
@@ -262,23 +281,18 @@ void main() {
     await _settleQuestionTransition(tester);
     await _continueToNextQuestion(tester);
 
-    final Finder loudEnvironments = find.byKey(
-      QuestionFiveScreen.situationKey(PlanningSituation.loudEnvironments),
+    final Finder largeCrowds = find.byKey(
+      QuestionFiveScreen.situationKey(PlanningSituation.largeCrowds),
     );
-    await tester.ensureVisible(loudEnvironments);
+    await tester.ensureVisible(largeCrowds);
     await tester.pump();
-    await tester.tap(loudEnvironments);
+    await tester.tap(largeCrowds);
     await tester.pump();
     await _continueToNextQuestion(tester);
 
-    expect(
-      find.text('Are there situations we should avoid or plan around?'),
-      findsOneWidget,
-    );
-    expect(
-      find.text('That is the last question. Chat is coming in the next stage.'),
-      findsOneWidget,
-    );
+    expect(find.text('Find a place'), findsOneWidget);
+    expect(find.text('Chat'), findsOneWidget);
+    expect(find.text('Profile'), findsOneWidget);
     expect(
       find.text('Ready to submit your five question responses?'),
       findsNothing,
@@ -287,6 +301,17 @@ void main() {
       find.text('Your profile setup is confirmed in this frontend build'),
       findsNothing,
     );
+
+    await tester.tap(find.byKey(MainAppShell.profileDestinationKey));
+    await tester.pumpAndSettle();
+    expect(find.text('Large crowds'), findsOneWidget);
+
+    final Finder signOut = find.byKey(ProfileScreen.signOutButtonKey);
+    await tester.ensureVisible(signOut);
+    await tester.tap(signOut);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(find.text('Find places that fit you.'), findsOneWidget);
   });
 
   testWidgets(
