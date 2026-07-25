@@ -41,7 +41,7 @@ class _ChatPageState extends State<ChatPage> {
     _scrollToEnd();
 
     try {
-      final reply = await _service.sendMessage(_messages, systemPrompt: widget.systemPrompt);
+      final reply = await _service.sendMessage(text, systemPrompt: widget.systemPrompt);
       setState(() {
         _messages.add(ChatMessage(role: ChatRole.assistant, content: reply));
       });
@@ -74,7 +74,7 @@ class _ChatPageState extends State<ChatPage> {
           child: Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: Text(
-              'OpenAI · gpt-4o-mini',
+              'OpenAI · gpt-4o',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),

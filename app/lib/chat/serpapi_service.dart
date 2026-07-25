@@ -16,6 +16,7 @@ class SerpApiException implements Exception {
 class SerpApiPlace {
   const SerpApiPlace({
     required this.name,
+    this.dataId,
     this.address,
     this.category,
     this.rating,
@@ -25,6 +26,11 @@ class SerpApiPlace {
   });
 
   final String name;
+
+  /// Google Maps' data_id — required to look up this place's reviews via
+  /// [SerpApiService.fetchReviews]. Not the same as SerpAPI's place_id/
+  /// data_cid, which google_maps_reviews rejects.
+  final String? dataId;
   final String? address;
   final String? category;
   final double? rating;
@@ -36,6 +42,7 @@ class SerpApiPlace {
   /// review content. See docs/steering/serpapi-data-sourcing.md.
   Map<String, dynamic> toEvidenceJson() => {
     'name': name,
+    'dataId': dataId,
     'address': address,
     'category': category,
     'rating': rating,
@@ -44,8 +51,36 @@ class SerpApiPlace {
     'hours': hours,
     'evidenceType': 'declared',
     'note':
-        'Aggregate rating and review count only; individual review text is '
-        'not available from this lookup.',
+        'Aggregate rating and review count only. To read individual review '
+        'text for this place, call get_reviews_for_place with its dataId.',
+  };
+}
+
+class SerpApiReview {
+  const SerpApiReview({
+    required this.reviewerName,
+    required this.rating,
+    required this.text,
+    this.relativeDate,
+    this.isoDate,
+  });
+
+  final String reviewerName;
+  final double? rating;
+  final String text;
+  final String? relativeDate;
+  final String? isoDate;
+
+  /// Provenance-tagged as observed (customer-reported), never declared —
+  /// this is the whole point of adding this lookup. See
+  /// docs/steering/serpapi-data-sourcing.md.
+  Map<String, dynamic> toEvidenceJson() => {
+    'reviewerName': reviewerName,
+    'rating': rating,
+    'text': text,
+    'relativeDate': relativeDate,
+    'isoDate': isoDate,
+    'evidenceType': 'observed',
   };
 }
 
@@ -58,11 +93,62 @@ class SerpApiService {
       '$proxyBaseUrl/api/places',
     ).replace(queryParameters: {'q': query});
 
+    final data = await _getJson(uri, notRunningHint: 'Is server/bin/server.dart running?');
+
+    // engine=google_maps returns a flat local_results array (unlike
+    // engine=google, which nests listings under local_results.places).
+    final results = data['local_results'] as List<dynamic>? ?? const [];
+
+    return results.take(limit).map((raw) {
+      final r = raw as Map<String, dynamic>;
+      return SerpApiPlace(
+        name: (r['title'] as String?) ?? 'Unknown',
+        dataId: r['data_id']?.toString(),
+        address: r['address']?.toString(),
+        category: r['type']?.toString(),
+        rating: (r['rating'] as num?)?.toDouble(),
+        reviewCount: (r['reviews'] as num?)?.toInt(),
+        phone: r['phone']?.toString(),
+        hours: r['hours']?.toString(),
+      );
+    }).toList();
+  }
+
+  /// Fetches individual review text for a place via engine=google_maps_reviews.
+  /// [dataId] must come from a prior [searchLocalPlaces] result's dataId —
+  /// SerpAPI's other place identifiers (place_id/data_cid) don't work here.
+  Future<List<SerpApiReview>> fetchReviews(String dataId, {int limit = 5}) async {
+    final uri = Uri.parse(
+      '$proxyBaseUrl/api/reviews',
+    ).replace(queryParameters: {'data_id': dataId});
+
+    final data = await _getJson(uri, notRunningHint: 'Is server/bin/server.dart running?');
+
+    final reviews = data['reviews'] as List<dynamic>? ?? const [];
+
+    return reviews.take(limit).map((raw) {
+      final r = raw as Map<String, dynamic>;
+      final user = r['user'] as Map<String, dynamic>?;
+      final snippet =
+          (r['snippet'] as String?) ??
+          ((r['extracted_snippet'] as Map<String, dynamic>?)?['original'] as String?) ??
+          '';
+      return SerpApiReview(
+        reviewerName: (user?['name'] as String?) ?? 'Anonymous',
+        rating: (r['rating'] as num?)?.toDouble(),
+        text: snippet,
+        relativeDate: r['date']?.toString(),
+        isoDate: r['iso_date']?.toString(),
+      );
+    }).toList();
+  }
+
+  Future<Map<String, dynamic>> _getJson(Uri uri, {required String notRunningHint}) async {
     final http.Response response;
     try {
       response = await http.get(uri);
     } catch (_) {
-      throw SerpApiException('Could not reach the local proxy. Is server/bin/server.dart running?');
+      throw SerpApiException('Could not reach the local proxy. $notRunningHint');
     }
 
     final Map<String, dynamic> data;
@@ -77,22 +163,6 @@ class SerpApiService {
       throw SerpApiException(message ?? 'SerpAPI request failed (${response.statusCode}).');
     }
 
-    // engine=google nests local pack listings under local_results.places
-    // (a flat local_results array is only returned by engine=google_local).
-    final localResults = data['local_results'] as Map<String, dynamic>?;
-    final places = localResults?['places'] as List<dynamic>? ?? const [];
-
-    return places.take(limit).map((raw) {
-      final r = raw as Map<String, dynamic>;
-      return SerpApiPlace(
-        name: (r['title'] as String?) ?? 'Unknown',
-        address: r['address']?.toString(),
-        category: r['type']?.toString(),
-        rating: (r['rating'] as num?)?.toDouble(),
-        reviewCount: (r['reviews'] as num?)?.toInt(),
-        phone: r['phone']?.toString(),
-        hours: r['hours']?.toString(),
-      );
-    }).toList();
+    return data;
   }
 }

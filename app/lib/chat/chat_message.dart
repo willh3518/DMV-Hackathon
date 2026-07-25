@@ -5,8 +5,4 @@ class ChatMessage {
 
   final ChatRole role;
   final String content;
-
-  String get apiRole => role == ChatRole.user ? 'user' : 'assistant';
-
-  Map<String, String> toApiJson() => {'role': apiRole, 'content': content};
 }
