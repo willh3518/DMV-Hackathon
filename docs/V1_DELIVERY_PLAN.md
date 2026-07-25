@@ -44,17 +44,12 @@ Non-goals in the product specification remain outside the 12-hour scope.
 
 ## Approved baseline prerequisite
 
-The current worktree contains substantial uncommitted work. Before parallel
-feature implementation:
+The approved Flutter baseline is recorded in commit `d6fb1d1`. Before parallel
+feature implementation, the coordinator completed the full diff inspection,
+formatting, analysis, tests, platform checks, user-approved landing review, and
+baseline handoff.
 
-1. Inspect the complete diff.
-2. Run format, analysis, tests, and platform checks appropriate to the baseline.
-3. Obtain user approval of the current landing build.
-4. Create an approved baseline commit through the authorized coordinator.
-5. Record its commit identifier in the implementation handoff.
-
-No parallel builder phase starts before this baseline exists. This plan does not
-authorize a commit by itself.
+No parallel builder phase starts before this baseline exists.
 
 ## Exclusive ownership matrix
 
@@ -351,7 +346,7 @@ and restore the global Flutter build-directory setting.
 | Unknown becomes inaccessible | Contract enum, fixtures, tests, and independent review |
 | Flutter implements scoring | Treat score/evidence as immutable contract output |
 | Location denial traps the user | Just-in-time request, all permission states, manual fallback |
-| Privacy overclaim | Block absolute landing claim pending approval/rewording |
+| Privacy overclaim | Keep qualified landing copy; require approval before adding data-handling guarantees |
 | Legal copy is unavailable | Build surface only; mark placeholders non-production |
 | Deletion falsely appears complete | Distinct submitted/pending/failed/confirmed states |
 | Backend dependency is late | Typed interfaces and synthetic fixtures |

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 class LandingScreen extends StatefulWidget {
   const LandingScreen({
     required this.getStartedFocusNode,
+    required this.signInFocusNode,
     required this.onGetStarted,
     required this.onSignIn,
     this.enabled = true,
@@ -14,6 +15,7 @@ class LandingScreen extends StatefulWidget {
   });
 
   final FocusNode getStartedFocusNode;
+  final FocusNode signInFocusNode;
   final VoidCallback onGetStarted;
   final VoidCallback onSignIn;
   final bool enabled;
@@ -143,14 +145,15 @@ class _LandingScreenState extends State<LandingScreen>
                     const SizedBox(height: 8),
                     TextButton(
                       key: const Key('sign_in_button'),
+                      focusNode: widget.signInFocusNode,
                       onPressed: widget.enabled ? widget.onSignIn : null,
                       child: const Text('Already have an account? Sign in'),
                     ),
                     const SizedBox(height: 8),
                     Semantics(
                       label:
-                          'Privacy note. Your needs stay private and can be '
-                          'changed anytime.',
+                          'Privacy note. You control what you share and can '
+                          'update your answers anytime.',
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -167,8 +170,8 @@ class _LandingScreenState extends State<LandingScreen>
                           Flexible(
                             child: ExcludeSemantics(
                               child: Text(
-                                'Your needs stay private and can be changed '
-                                'anytime.',
+                                'You control what you share and can update '
+                                'your answers anytime.',
                                 textAlign: TextAlign.center,
                                 style: Theme.of(context).textTheme.bodyMedium,
                               ),

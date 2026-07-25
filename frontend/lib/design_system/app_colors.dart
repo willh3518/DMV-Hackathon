@@ -10,7 +10,7 @@ abstract final class AppColors {
   static const Color primaryStrong = Color(0xFF155A9C);
   static const Color textPrimary = Color(0xFF17324D);
   static const Color textSecondary = Color(0xFF536B80);
-  static const Color outline = Color(0xFF9AB7D1);
+  static const Color outline = Color(0xFF6888A3);
   static const Color bubbleBlue = Color(0xFFB9DCFA);
   static const Color bubbleLavender = Color(0xFFDADFFF);
   static const Color shadow = Color(0x242474C6);

@@ -18,7 +18,9 @@ void main() {
     expect(find.text('Get started'), findsOneWidget);
     expect(find.text('Already have an account? Sign in'), findsOneWidget);
     expect(
-      find.text('Your needs stay private and can be changed anytime.'),
+      find.text(
+        'You control what you share and can update your answers anytime.',
+      ),
       findsOneWidget,
     );
     expect(tester.takeException(), isNull);

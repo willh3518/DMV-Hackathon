@@ -13,7 +13,6 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Accessibility discovery',
       theme: AppTheme.light,
       home: const OnboardingEntryFlow(),
     );

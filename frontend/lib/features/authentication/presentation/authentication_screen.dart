@@ -27,8 +27,10 @@ class AuthenticationScreen extends StatefulWidget {
 }
 
 class _AuthenticationScreenState extends State<AuthenticationScreen>
-    with TickerProviderStateMixin, WidgetsBindingObserver {
+    with TickerProviderStateMixin, WidgetsBindingObserver
+    implements PopEntry<Object?> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final ValueNotifier<bool> _canPopNotifier = ValueNotifier<bool>(true);
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
@@ -36,6 +38,9 @@ class _AuthenticationScreenState extends State<AuthenticationScreen>
   late final FocusNode _emailFocusNode;
   late final FocusNode _passwordFocusNode;
   late final FocusNode _confirmPasswordFocusNode;
+  late final FocusNode _headingFocusNode;
+  late final FocusNode _errorFocusNode;
+  ModalRoute<dynamic>? _registeredRoute;
   late AuthenticationOperation _operation;
   AuthenticationFailureReason? _failureReason;
   bool _autoValidate = false;
@@ -53,6 +58,33 @@ class _AuthenticationScreenState extends State<AuthenticationScreen>
     _confirmPasswordFocusNode = FocusNode(
       debugLabel: 'Authentication confirm password',
     );
+    _headingFocusNode = FocusNode(
+      debugLabel: 'Authentication heading',
+      skipTraversal: true,
+    );
+    _errorFocusNode = FocusNode(
+      debugLabel: 'Authentication error',
+      skipTraversal: true,
+    );
+    WidgetsBinding.instance.addPostFrameCallback((Duration _) {
+      if (mounted) {
+        _headingFocusNode.requestFocus();
+      }
+    });
+  }
+
+  @override
+  ValueNotifier<bool> get canPopNotifier => _canPopNotifier;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final ModalRoute<dynamic>? nextRoute = ModalRoute.of(context);
+    if (nextRoute != _registeredRoute) {
+      _registeredRoute?.unregisterPopEntry(this);
+      _registeredRoute = nextRoute;
+      _registeredRoute?.registerPopEntry(this);
+    }
   }
 
   @override
@@ -61,20 +93,33 @@ class _AuthenticationScreenState extends State<AuthenticationScreen>
   }
 
   @override
+  void onPopInvoked(bool didPop) {}
+
+  @override
+  void onPopInvokedWithResult(bool didPop, Object? result) {}
+
+  @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _registeredRoute?.unregisterPopEntry(this);
+    _canPopNotifier.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _emailFocusNode.dispose();
     _passwordFocusNode.dispose();
     _confirmPasswordFocusNode.dispose();
+    _headingFocusNode.dispose();
+    _errorFocusNode.dispose();
     super.dispose();
   }
 
-  Duration get _motionDuration => prefersReducedMotion(context)
+  Duration get _crossfadeDuration => prefersReducedMotion(context)
       ? const Duration(milliseconds: 90)
       : const Duration(milliseconds: 220);
+
+  Duration get _sizeMotionDuration =>
+      prefersReducedMotion(context) ? Duration.zero : _crossfadeDuration;
 
   bool get _isSignUp => _operation == AuthenticationOperation.signUp;
 
@@ -85,6 +130,41 @@ class _AuthenticationScreenState extends State<AuthenticationScreen>
       : 'Sign in to continue with your saved profile, progress, and recommendations.';
 
   String get _submitLabel => _isSignUp ? 'Create account' : 'Sign in';
+
+  String get _loadingLabel =>
+      _isSignUp ? 'Creating your account' : 'Signing in';
+
+  void _requestFocus(FocusNode focusNode) {
+    WidgetsBinding.instance.addPostFrameCallback((Duration _) {
+      if (mounted) {
+        focusNode.requestFocus();
+      }
+    });
+  }
+
+  void _focusFirstInvalidField() {
+    if (_validateEmail(_emailController.text) != null) {
+      _requestFocus(_emailFocusNode);
+      return;
+    }
+    if (_validatePassword(_passwordController.text) != null) {
+      _requestFocus(_passwordFocusNode);
+      return;
+    }
+    if (_isSignUp &&
+        _validateConfirmation(_confirmPasswordController.text) != null) {
+      _requestFocus(_confirmPasswordFocusNode);
+    }
+  }
+
+  void _showFailure(AuthenticationFailureReason reason) {
+    _canPopNotifier.value = true;
+    setState(() {
+      _isSubmitting = false;
+      _failureReason = reason;
+    });
+    _requestFocus(_errorFocusNode);
+  }
 
   void _handleModeChanged(Set<AuthenticationOperation> selection) {
     if (_isSubmitting || selection.isEmpty) {
@@ -104,13 +184,6 @@ class _AuthenticationScreenState extends State<AuthenticationScreen>
         _confirmPasswordController.clear();
       }
     });
-
-    WidgetsBinding.instance.addPostFrameCallback((Duration _) {
-      if (!mounted) {
-        return;
-      }
-      _passwordFocusNode.requestFocus();
-    });
   }
 
   Future<void> _submit() async {
@@ -124,10 +197,15 @@ class _AuthenticationScreenState extends State<AuthenticationScreen>
     });
 
     final FormState? form = _formKey.currentState;
-    if (form == null || !form.validate()) {
+    if (form == null) {
+      return;
+    }
+    if (!form.validate()) {
+      _focusFirstInvalidField();
       return;
     }
 
+    _canPopNotifier.value = false;
     setState(() => _isSubmitting = true);
 
     late final AuthenticationResult result;
@@ -141,10 +219,11 @@ class _AuthenticationScreenState extends State<AuthenticationScreen>
               email: _emailController.text.trim(),
               password: _passwordController.text,
             );
-    } finally {
+    } on Object {
       if (mounted) {
-        setState(() => _isSubmitting = false);
+        _showFailure(AuthenticationFailureReason.unknown);
       }
+      return;
     }
 
     if (!mounted) {
@@ -153,9 +232,10 @@ class _AuthenticationScreenState extends State<AuthenticationScreen>
 
     switch (result) {
       case AuthenticationSuccess success:
+        _canPopNotifier.value = true;
         widget.onAuthenticated(success.nextStep);
       case AuthenticationFailure failure:
-        setState(() => _failureReason = failure.reason);
+        _showFailure(failure.reason);
     }
   }
 
@@ -233,25 +313,26 @@ class _AuthenticationScreenState extends State<AuthenticationScreen>
   Widget _buildVisibilityButton({
     required Key key,
     required bool visible,
-    required String fieldName,
+    required String fieldLabel,
     required VoidCallback onPressed,
   }) {
-    final String label = visible
-        ? 'Hide $fieldName password'
-        : 'Show $fieldName password';
+    final String label = visible ? 'Hide $fieldLabel' : 'Show $fieldLabel';
 
-    return IconButton(
-      key: key,
-      isSelected: visible,
-      tooltip: label,
-      onPressed: onPressed,
-      icon: const Icon(
-        Icons.visibility_rounded,
-        color: AppColors.primaryStrong,
-      ),
-      selectedIcon: const Icon(
-        Icons.visibility_off_rounded,
-        color: AppColors.primaryStrong,
+    return Semantics(
+      label: label,
+      child: IconButton(
+        key: key,
+        isSelected: visible,
+        tooltip: label,
+        onPressed: onPressed,
+        icon: const Icon(
+          Icons.visibility_rounded,
+          color: AppColors.primaryStrong,
+        ),
+        selectedIcon: const Icon(
+          Icons.visibility_off_rounded,
+          color: AppColors.primaryStrong,
+        ),
       ),
     );
   }
@@ -266,66 +347,78 @@ class _AuthenticationScreenState extends State<AuthenticationScreen>
         failureReason == AuthenticationFailureReason.accountAlreadyExists &&
         _isSignUp;
 
-    return Container(
-      key: const Key('authentication_error_banner'),
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.95),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.outline),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              const Padding(
-                padding: EdgeInsets.only(top: 2),
-                child: Icon(
-                  Icons.info_outline_rounded,
-                  color: AppColors.primaryStrong,
+    return Focus(
+      key: const Key('authentication_error_focus'),
+      focusNode: _errorFocusNode,
+      child: Container(
+        key: const Key('authentication_error_banner'),
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.95),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.outline),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Semantics(
+              key: const Key('authentication_error_announcement'),
+              container: true,
+              liveRegion: true,
+              label: 'Account access error. ${failureReason.userMessage}',
+              child: ExcludeSemantics(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    const Padding(
+                      padding: EdgeInsets.only(top: 2),
+                      child: Icon(
+                        Icons.info_outline_rounded,
+                        color: AppColors.primaryStrong,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        failureReason.userMessage,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  failureReason.userMessage,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+            ),
+            if (failureReason.canRetry || showSwitchAction) ...<Widget>[
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: <Widget>[
+                  if (failureReason.canRetry)
+                    TextButton(
+                      key: const Key('authentication_retry_button'),
+                      onPressed: _isSubmitting ? null : _submit,
+                      child: const Text('Try again'),
+                    ),
+                  if (showSwitchAction)
+                    TextButton(
+                      key: const Key('switch_to_sign_in_button'),
+                      onPressed: _isSubmitting
+                          ? null
+                          : () => _handleModeChanged(<AuthenticationOperation>{
+                              AuthenticationOperation.signIn,
+                            }),
+                      child: const Text('Sign in instead'),
+                    ),
+                ],
               ),
             ],
-          ),
-          if (failureReason.canRetry || showSwitchAction) ...<Widget>[
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: <Widget>[
-                if (failureReason.canRetry)
-                  TextButton(
-                    key: const Key('authentication_retry_button'),
-                    onPressed: _isSubmitting ? null : _submit,
-                    child: const Text('Try again'),
-                  ),
-                if (showSwitchAction)
-                  TextButton(
-                    key: const Key('switch_to_sign_in_button'),
-                    onPressed: _isSubmitting
-                        ? null
-                        : () => _handleModeChanged(<AuthenticationOperation>{
-                            AuthenticationOperation.signIn,
-                          }),
-                    child: const Text('Sign in instead'),
-                  ),
-              ],
-            ),
           ],
-        ],
+        ),
       ),
     );
   }
@@ -373,11 +466,17 @@ class _AuthenticationScreenState extends State<AuthenticationScreen>
                                 children: <Widget>[
                                   const _NeutralMark(),
                                   const SizedBox(height: 20),
-                                  Semantics(
-                                    header: true,
-                                    child: Text(
-                                      _headline,
-                                      style: theme.textTheme.headlineMedium,
+                                  Focus(
+                                    key: const Key(
+                                      'authentication_heading_focus',
+                                    ),
+                                    focusNode: _headingFocusNode,
+                                    child: Semantics(
+                                      header: true,
+                                      child: Text(
+                                        _headline,
+                                        style: theme.textTheme.headlineMedium,
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(height: 12),
@@ -472,7 +571,7 @@ class _AuthenticationScreenState extends State<AuthenticationScreen>
                                           'authentication_password_visibility_button',
                                         ),
                                         visible: _passwordVisible,
-                                        fieldName: 'main',
+                                        fieldLabel: 'password',
                                         onPressed: () {
                                           setState(() {
                                             _passwordVisible =
@@ -497,85 +596,97 @@ class _AuthenticationScreenState extends State<AuthenticationScreen>
                                     },
                                   ),
                                   const SizedBox(height: 14),
-                                  AnimatedSize(
-                                    duration: _motionDuration,
-                                    curve: Curves.easeOutCubic,
-                                    child: AnimatedSwitcher(
-                                      duration: _motionDuration,
-                                      switchInCurve: Curves.easeOutCubic,
-                                      switchOutCurve: Curves.easeOutCubic,
-                                      layoutBuilder:
-                                          (
-                                            Widget? currentChild,
-                                            List<Widget> previousChildren,
-                                          ) {
-                                            return Column(
-                                              children: <Widget>[
-                                                ...previousChildren,
-                                                if (currentChild
-                                                    case final Widget child)
-                                                  child,
-                                              ],
-                                            );
-                                          },
-                                      child: _isSignUp
-                                          ? KeyedSubtree(
-                                              key: const Key(
-                                                'authentication_confirm_password_container',
-                                              ),
-                                              child: TextFormField(
-                                                key: const Key(
-                                                  'authentication_confirm_password_field',
-                                                ),
-                                                controller:
-                                                    _confirmPasswordController,
-                                                focusNode:
-                                                    _confirmPasswordFocusNode,
-                                                enabled: !_isSubmitting,
-                                                obscureText:
-                                                    !_confirmPasswordVisible,
-                                                textInputAction:
-                                                    TextInputAction.done,
-                                                autofillHints: const <String>[
-                                                  AutofillHints.newPassword,
+                                  Builder(
+                                    builder: (BuildContext context) {
+                                      final Widget
+                                      confirmationField = AnimatedSwitcher(
+                                        duration: _crossfadeDuration,
+                                        switchInCurve: Curves.easeOutCubic,
+                                        switchOutCurve: Curves.easeOutCubic,
+                                        layoutBuilder:
+                                            (
+                                              Widget? currentChild,
+                                              List<Widget> previousChildren,
+                                            ) {
+                                              return Column(
+                                                children: <Widget>[
+                                                  ...previousChildren,
+                                                  if (currentChild
+                                                      case final Widget child)
+                                                    child,
                                                 ],
-                                                decoration: _inputDecoration(
-                                                  label: 'Confirm password',
-                                                  suffixIcon: _buildVisibilityButton(
-                                                    key: const Key(
-                                                      'authentication_confirm_password_visibility_button',
-                                                    ),
-                                                    visible:
-                                                        _confirmPasswordVisible,
-                                                    fieldName: 'confirmation',
-                                                    onPressed: () {
-                                                      setState(() {
-                                                        _confirmPasswordVisible =
-                                                            !_confirmPasswordVisible;
-                                                      });
-                                                    },
-                                                  ),
+                                              );
+                                            },
+                                        child: _isSignUp
+                                            ? KeyedSubtree(
+                                                key: const Key(
+                                                  'authentication_confirm_password_container',
                                                 ),
-                                                validator:
-                                                    _validateConfirmation,
-                                                onFieldSubmitted: (_) =>
-                                                    _submit(),
-                                                onChanged: (_) {
-                                                  if (_failureReason != null) {
-                                                    setState(
-                                                      () =>
-                                                          _failureReason = null,
-                                                    );
-                                                  }
-                                                },
+                                                child: TextFormField(
+                                                  key: const Key(
+                                                    'authentication_confirm_password_field',
+                                                  ),
+                                                  controller:
+                                                      _confirmPasswordController,
+                                                  focusNode:
+                                                      _confirmPasswordFocusNode,
+                                                  enabled: !_isSubmitting,
+                                                  obscureText:
+                                                      !_confirmPasswordVisible,
+                                                  textInputAction:
+                                                      TextInputAction.done,
+                                                  autofillHints: const <String>[
+                                                    AutofillHints.newPassword,
+                                                  ],
+                                                  decoration: _inputDecoration(
+                                                    label: 'Confirm password',
+                                                    suffixIcon: _buildVisibilityButton(
+                                                      key: const Key(
+                                                        'authentication_confirm_password_visibility_button',
+                                                      ),
+                                                      visible:
+                                                          _confirmPasswordVisible,
+                                                      fieldLabel:
+                                                          'confirmation password',
+                                                      onPressed: () {
+                                                        setState(() {
+                                                          _confirmPasswordVisible =
+                                                              !_confirmPasswordVisible;
+                                                        });
+                                                      },
+                                                    ),
+                                                  ),
+                                                  validator:
+                                                      _validateConfirmation,
+                                                  onFieldSubmitted: (_) =>
+                                                      _submit(),
+                                                  onChanged: (_) {
+                                                    if (_failureReason !=
+                                                        null) {
+                                                      setState(
+                                                        () => _failureReason =
+                                                            null,
+                                                      );
+                                                    }
+                                                  },
+                                                ),
+                                              )
+                                            : const SizedBox.shrink(
+                                                key: Key(
+                                                  'authentication_confirm_password_hidden',
+                                                ),
                                               ),
-                                            )
-                                          : const SizedBox.shrink(
-                                              key: Key(
-                                                'authentication_confirm_password_hidden',
-                                              ),
-                                            ),
-                                    ),
+                                      );
+
+                                      if (prefersReducedMotion(context)) {
+                                        return confirmationField;
+                                      }
+                                      return AnimatedSize(
+                                        duration: _sizeMotionDuration,
+                                        curve: Curves.easeOutCubic,
+                                        child: confirmationField,
+                                      );
+                                    },
                                   ),
                                   const SizedBox(height: 20),
                                   FilledButton(
@@ -584,19 +695,31 @@ class _AuthenticationScreenState extends State<AuthenticationScreen>
                                     ),
                                     onPressed: _isSubmitting ? null : _submit,
                                     child: AnimatedSwitcher(
-                                      duration: _motionDuration,
+                                      duration: _crossfadeDuration,
                                       child: _isSubmitting
-                                          ? const SizedBox(
-                                              key: Key(
-                                                'authentication_loading_indicator',
-                                              ),
-                                              width: 24,
-                                              height: 24,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2.6,
-                                                color: Colors.white,
-                                              ),
-                                            )
+                                          ? prefersReducedMotion(context)
+                                                ? ExcludeSemantics(
+                                                    child: Text(
+                                                      _loadingLabel,
+                                                      key: const Key(
+                                                        'authentication_loading_static_status',
+                                                      ),
+                                                    ),
+                                                  )
+                                                : const ExcludeSemantics(
+                                                    child: SizedBox(
+                                                      key: Key(
+                                                        'authentication_loading_indicator',
+                                                      ),
+                                                      width: 24,
+                                                      height: 24,
+                                                      child:
+                                                          CircularProgressIndicator(
+                                                            strokeWidth: 2.6,
+                                                            color: Colors.white,
+                                                          ),
+                                                    ),
+                                                  )
                                           : Text(
                                               _submitLabel,
                                               key: const Key(
@@ -605,6 +728,16 @@ class _AuthenticationScreenState extends State<AuthenticationScreen>
                                             ),
                                     ),
                                   ),
+                                  if (_isSubmitting)
+                                    Semantics(
+                                      key: const Key(
+                                        'authentication_loading_status',
+                                      ),
+                                      container: true,
+                                      liveRegion: true,
+                                      label: _loadingLabel,
+                                      child: const SizedBox.shrink(),
+                                    ),
                                   const SizedBox(height: 12),
                                   Center(
                                     child: Wrap(

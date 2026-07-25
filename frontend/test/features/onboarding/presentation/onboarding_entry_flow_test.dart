@@ -1,5 +1,9 @@
+import 'package:accessibility_frontend/contracts/authentication_gateway.dart';
+import 'package:accessibility_frontend/domain/authentication/authentication_models.dart';
 import 'package:accessibility_frontend/design_system/app_theme.dart';
 import 'package:accessibility_frontend/features/onboarding/presentation/onboarding_entry_flow.dart';
+import 'package:accessibility_frontend/features/onboarding/presentation/widgets/onboarding_question_shell.dart';
+import 'package:accessibility_frontend/fixtures/synthetic_authentication_gateway.dart';
 import 'package:accessibility_frontend/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,20 +13,16 @@ void main() {
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const MainApp());
-
-    await tester.tap(find.byKey(const Key('get_started_button')));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 320));
-    await tester.pump();
+    await _completeSignUp(tester);
 
     expect(find.text('What accommodations help you?'), findsOneWidget);
     expect(find.text('Question 1 of 5'), findsOneWidget);
     final Focus questionHeading = tester.widget<Focus>(
-      find.byKey(const Key('question_one_heading_focus')),
+      find.byKey(OnboardingQuestionShell.headingFocusKey),
     );
     expect(questionHeading.focusNode?.hasFocus, isTrue);
 
-    await tester.tap(find.byKey(const Key('onboarding_back_button')));
+    await tester.tap(find.byKey(OnboardingQuestionShell.backButtonKey));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 320));
     await tester.pump();
@@ -47,10 +47,16 @@ void main() {
       findsNothing,
     );
 
-    await tester.tap(find.byKey(const Key('get_started_button')));
-    await tester.pump();
+    await _completeSignUp(tester);
 
-    expect(find.bySemanticsLabel('Find places that fit you.'), findsNothing);
+    final ExcludeSemantics landingGate = tester.widget<ExcludeSemantics>(
+      find.byKey(const Key('landing_semantics_gate')),
+    );
+    final ExcludeSemantics questionGate = tester.widget<ExcludeSemantics>(
+      find.byKey(const Key('question_semantics_gate')),
+    );
+    expect(landingGate.excluding, isTrue);
+    expect(questionGate.excluding, isFalse);
     expect(
       find.bySemanticsLabel('What accommodations help you?'),
       findsOneWidget,
@@ -67,34 +73,144 @@ void main() {
     semantics.dispose();
   });
 
-  testWidgets('Sign in gives honest temporary feedback', (
+  testWidgets('Sign in opens authentication in returning-user mode', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const MainApp());
 
-    await tester.drag(
-      find.byType(SingleChildScrollView).first,
-      const Offset(0, -200),
-    );
+    final Finder signIn = find.byKey(const Key('sign_in_button'));
+    await tester.ensureVisible(signIn);
+    await tester.tap(signIn);
     await tester.pump();
-    await tester.tap(find.byKey(const Key('sign_in_button')));
+    await tester.pump(const Duration(milliseconds: 320));
+
+    expect(find.text('Welcome back'), findsOneWidget);
+    expect(
+      find.byKey(const Key('authentication_confirm_password_field')),
+      findsNothing,
+    );
+
+    await tester.tap(find.byKey(const Key('authentication_back_button')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 320));
     await tester.pump();
 
-    expect(
-      find.text('Sign in will be available in the next app build.'),
-      findsOneWidget,
+    expect(find.text('Find places that fit you.'), findsOneWidget);
+    final TextButton signInButton = tester.widget<TextButton>(
+      find.byKey(const Key('sign_in_button')),
     );
+    expect(signInButton.focusNode?.hasFocus, isTrue);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('Get started opens authentication and back restores its CTA', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const MainApp());
+
+    final Finder getStarted = find.byKey(const Key('get_started_button'));
+    await tester.ensureVisible(getStarted);
+    await tester.tap(getStarted);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 320));
+
+    expect(find.text('Create account'), findsWidgets);
+
+    await tester.tap(find.byKey(const Key('authentication_back_button')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 320));
+    await tester.pump();
+
+    final FilledButton getStartedButton = tester.widget<FilledButton>(
+      getStarted,
+    );
+    expect(getStartedButton.focusNode?.hasFocus, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('resume next step shows honest temporary message and Q1', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: OnboardingEntryFlow(
+          authenticationGateway: SyntheticAuthenticationGateway(
+            signInResult: AuthenticationSuccess(
+              nextStep: ResumeOnboardingNextStep(stepIndex: 3),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await _completeSignIn(tester);
+
+    expect(find.text('What accommodations help you?'), findsOneWidget);
+    expect(
+      find.text(
+        'We saved your place at question 4. This build reopens Question 1 '
+        'while the rest of onboarding is still being connected.',
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(OnboardingQuestionShell.backButtonKey));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 320));
+    await tester.pump();
+
+    final TextButton signInButton = tester.widget<TextButton>(
+      find.byKey(const Key('sign_in_button')),
+    );
+    expect(signInButton.focusNode?.hasFocus, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'open chat next step returns to landing with an honest root message',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: OnboardingEntryFlow(
+            authenticationGateway: _TestAuthenticationGateway(
+              signInResult: const AuthenticationSuccess(
+                nextStep: OpenChatNextStep(),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await _completeSignIn(tester);
+
+      expect(find.text('Find places that fit you.'), findsOneWidget);
+      expect(
+        find.text(
+          'Your account is ready. Chat will connect from the home screen in '
+          'a later build.',
+        ),
+        findsOneWidget,
+      );
+
+      final TextButton signInButton = tester.widget<TextButton>(
+        find.byKey(const Key('sign_in_button')),
+      );
+      expect(signInButton.focusNode?.hasFocus, isTrue);
+      final ExcludeSemantics questionGate = tester.widget<ExcludeSemantics>(
+        find.byKey(const Key('question_semantics_gate')),
+      );
+      expect(questionGate.excluding, isTrue);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('Question 1 meets automated accessibility guidelines', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const MainApp());
-    await tester.tap(find.byKey(const Key('get_started_button')));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 320));
-    await tester.pump();
+    await _completeSignUp(tester);
 
     await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
     await expectLater(tester, meetsGuideline(iOSTapTargetGuideline));
@@ -138,12 +254,7 @@ void main() {
     });
 
     await tester.pumpWidget(const MainApp());
-    await tester.ensureVisible(find.byKey(const Key('get_started_button')));
-    await tester.pump();
-    await tester.tap(find.byKey(const Key('get_started_button')));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 320));
-    await tester.pump();
+    await _completeSignUp(tester);
     await tester.ensureVisible(find.text('Your choices come next'));
     await tester.pump();
 
@@ -167,13 +278,10 @@ void main() {
     );
 
     expect(tester.hasRunningAnimations, isFalse);
-    tester
-        .widget<FilledButton>(find.byKey(const Key('get_started_button')))
-        .onPressed
-        ?.call();
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
-    await tester.pump();
+    await _completeSignUp(
+      tester,
+      routeDuration: const Duration(milliseconds: 100),
+    );
 
     expect(find.text('What accommodations help you?'), findsOneWidget);
     await tester.pump(const Duration(milliseconds: 150));
@@ -194,13 +302,10 @@ void main() {
 
     expect(tester.hasRunningAnimations, isFalse);
 
-    tester
-        .widget<FilledButton>(find.byKey(const Key('get_started_button')))
-        .onPressed
-        ?.call();
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
-    await tester.pump();
+    await _completeSignUp(
+      tester,
+      routeDuration: const Duration(milliseconds: 100),
+    );
 
     expect(find.text('What accommodations help you?'), findsOneWidget);
     await tester.pump(const Duration(milliseconds: 150));
@@ -212,4 +317,98 @@ void main() {
     expect(tester.hasRunningAnimations, isTrue);
     expect(tester.takeException(), isNull);
   });
+}
+
+Future<void> _completeSignUp(
+  WidgetTester tester, {
+  Duration routeDuration = const Duration(milliseconds: 320),
+}) async {
+  final Finder getStarted = find.byKey(const Key('get_started_button'));
+  await tester.ensureVisible(getStarted);
+  await tester.tap(getStarted);
+  await tester.pump();
+  await tester.pump(routeDuration);
+
+  expect(find.text('Create account'), findsWidgets);
+
+  await tester.enterText(
+    find.byKey(const Key('authentication_email_field')),
+    'person@example.test',
+  );
+  await tester.enterText(
+    find.byKey(const Key('authentication_password_field')),
+    'invented-password',
+  );
+  await tester.enterText(
+    find.byKey(const Key('authentication_confirm_password_field')),
+    'invented-password',
+  );
+
+  final Finder submit = find.byKey(const Key('authentication_submit_button'));
+  await tester.ensureVisible(submit);
+  await tester.pump();
+  tester.widget<FilledButton>(submit).onPressed?.call();
+  await tester.pump();
+  await tester.pump(routeDuration);
+  await tester.pump();
+  await tester.pump(routeDuration);
+  await tester.pump();
+  await tester.pump(routeDuration);
+  await tester.pump();
+}
+
+Future<void> _completeSignIn(
+  WidgetTester tester, {
+  Duration routeDuration = const Duration(milliseconds: 320),
+}) async {
+  final Finder signIn = find.byKey(const Key('sign_in_button'));
+  await tester.ensureVisible(signIn);
+  await tester.tap(signIn);
+  await tester.pump();
+  await tester.pump(routeDuration);
+
+  expect(find.text('Welcome back'), findsOneWidget);
+
+  await tester.enterText(
+    find.byKey(const Key('authentication_email_field')),
+    'person@example.test',
+  );
+  await tester.enterText(
+    find.byKey(const Key('authentication_password_field')),
+    'invented-password',
+  );
+
+  final Finder submit = find.byKey(const Key('authentication_submit_button'));
+  await tester.ensureVisible(submit);
+  await tester.pump();
+  tester.widget<FilledButton>(submit).onPressed?.call();
+  await tester.pump();
+  await tester.pump(routeDuration);
+  await tester.pump();
+  await tester.pump(routeDuration);
+  await tester.pump();
+  await tester.pump(routeDuration);
+  await tester.pump();
+}
+
+class _TestAuthenticationGateway implements AuthenticationGateway {
+  const _TestAuthenticationGateway({required this.signInResult});
+
+  final AuthenticationResult signInResult;
+
+  @override
+  Future<AuthenticationResult> signIn({
+    required String email,
+    required String password,
+  }) async {
+    return signInResult;
+  }
+
+  @override
+  Future<AuthenticationResult> signUp({
+    required String email,
+    required String password,
+  }) async {
+    return const AuthenticationSuccess(nextStep: StartOnboardingNextStep());
+  }
 }

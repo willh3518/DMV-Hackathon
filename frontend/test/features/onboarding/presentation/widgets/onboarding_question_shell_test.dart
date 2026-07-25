@@ -153,7 +153,7 @@ void main() {
     expect(continueCount, 0);
   });
 
-  testWidgets('supports heading focus handoff and predictable traversal', (
+  testWidgets('supports heading focus handoff without adding it to traversal', (
     WidgetTester tester,
   ) async {
     final FocusNode backFocusNode = FocusNode(debugLabel: 'Back');
@@ -195,11 +195,8 @@ void main() {
 
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
     await tester.pump();
-    expect(headingFocusNode.hasFocus, isTrue);
-
-    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-    await tester.pump();
     expect(choiceFocusNode.hasFocus, isTrue);
+    expect(headingFocusNode.hasFocus, isFalse);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
     await tester.pump();
@@ -208,6 +205,40 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
     await tester.pump();
     expect(continueFocusNode.hasFocus, isTrue);
+  });
+
+  testWidgets('reduced motion removes shell button animation duration', (
+    WidgetTester tester,
+  ) async {
+    final MediaQueryData mediaQuery = MediaQueryData.fromView(
+      tester.view,
+    ).copyWith(disableAnimations: true);
+
+    await tester.pumpWidget(_testApp(mediaQuery: mediaQuery, shell: _shell()));
+
+    expect(
+      tester
+          .widget<TextButton>(find.byKey(OnboardingQuestionShell.backButtonKey))
+          .style
+          ?.animationDuration,
+      Duration.zero,
+    );
+    expect(
+      tester
+          .widget<TextButton>(find.byKey(OnboardingQuestionShell.skipButtonKey))
+          .style
+          ?.animationDuration,
+      Duration.zero,
+    );
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.byKey(OnboardingQuestionShell.continueButtonKey),
+          )
+          .style
+          ?.animationDuration,
+      Duration.zero,
+    );
   });
 
   testWidgets('remains usable at 3.2x text with a keyboard inset', (

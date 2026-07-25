@@ -381,7 +381,7 @@ Locked palette:
 | PRIV-001 | The app shall explain why sensitive profile data is requested and make it optional. | Every question offers Skip and editable review. |
 | PRIV-002 | Credentials, tokens, profile answers, free text, precise location, and production records shall not be logged or committed. | Diff and logging review find no such values. |
 | PRIV-003 | Development and tests shall use synthetic data only. | Fixtures are clearly fictional. |
-| PRIV-004 | The absolute landing sentence "Your needs stay private and can be changed anytime." requires privacy approval or qualified rewording. | Production readiness is blocked until approved copy replaces or validates the claim. |
+| PRIV-004 | Landing copy shall avoid absolute privacy guarantees before the product's data handling is approved. | The qualified sentence "You control what you share and can update your answers anytime." is used; final policy and legal copy still require approval. |
 | PRIV-005 | Review evidence shall be minimized. | Structured observations or short excerpts are used instead of full reviews. |
 
 ## Typed frontend contract boundaries
@@ -441,11 +441,9 @@ The fixture suite shall include:
 
 ## Known current-prototype gaps
 
-- Get started currently transitions directly from Landing to a Q1 placeholder,
-  bypassing Authentication.
-- Sign in currently shows a temporary snackbar instead of an authentication flow.
+- Authentication currently uses a synthetic gateway; real session, recovery,
+  verification, and persistence behavior remain external dependencies.
 - Q1 currently contains placeholder content rather than choices.
-- The absolute privacy sentence requires approval or qualified rewording.
 - Chat, Profile, recommendations, detail, location, legal, and account-management
   surfaces are not yet implemented.
 

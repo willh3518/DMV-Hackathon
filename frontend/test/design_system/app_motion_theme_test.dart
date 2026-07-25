@@ -1,3 +1,4 @@
+import 'package:accessibility_frontend/design_system/app_colors.dart';
 import 'package:accessibility_frontend/design_system/app_motion.dart';
 import 'package:accessibility_frontend/design_system/app_theme.dart';
 import 'package:flutter/material.dart';
@@ -60,4 +61,25 @@ void main() {
       greaterThanOrEqualTo(48),
     );
   });
+
+  test('outline keeps at least 3:1 contrast on shared light surfaces', () {
+    expect(
+      _contrastRatio(AppColors.outline, AppColors.surface),
+      greaterThanOrEqualTo(3),
+    );
+    expect(
+      _contrastRatio(AppColors.outline, AppColors.surfaceBlue),
+      greaterThanOrEqualTo(3),
+    );
+  });
+}
+
+double _contrastRatio(Color first, Color second) {
+  final double lighter = first.computeLuminance() > second.computeLuminance()
+      ? first.computeLuminance()
+      : second.computeLuminance();
+  final double darker = first.computeLuminance() > second.computeLuminance()
+      ? second.computeLuminance()
+      : first.computeLuminance();
+  return (lighter + 0.05) / (darker + 0.05);
 }

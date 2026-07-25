@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:accessibility_frontend/design_system/app_colors.dart';
+import 'package:accessibility_frontend/design_system/app_motion.dart';
 import 'package:flutter/material.dart';
 
 /// Shared presentation frame for one onboarding question.
@@ -69,6 +70,10 @@ class OnboardingQuestionShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool interactionsEnabled = enabled && !isLoading;
+    final Duration buttonAnimationDuration =
+        AppMotion.prefersReducedMotion(context)
+        ? Duration.zero
+        : AppMotion.feedback;
     final double progress = questionNumber / questionCount;
     final int progressPercent = (progress * 100).round();
     final double keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
@@ -100,6 +105,9 @@ class OnboardingQuestionShell extends StatelessWidget {
                       child: TextButton.icon(
                         key: backButtonKey,
                         focusNode: backFocusNode,
+                        style: ButtonStyle(
+                          animationDuration: buttonAnimationDuration,
+                        ),
                         onPressed: interactionsEnabled ? onBack : null,
                         icon: const Icon(Icons.arrow_back_rounded),
                         label: const Text('Back'),
@@ -138,6 +146,7 @@ class OnboardingQuestionShell extends StatelessWidget {
                     Focus(
                       key: headingFocusKey,
                       focusNode: headingFocusNode,
+                      skipTraversal: true,
                       child: Semantics(
                         header: true,
                         liveRegion: true,
@@ -197,6 +206,7 @@ class OnboardingQuestionShell extends StatelessWidget {
                       continueLabel: continueLabel,
                       onSkip: onSkip,
                       onContinue: onContinue,
+                      animationDuration: buttonAnimationDuration,
                     ),
                   ],
                 ),
@@ -216,6 +226,7 @@ class _QuestionActions extends StatelessWidget {
     required this.continueLabel,
     required this.onSkip,
     required this.onContinue,
+    required this.animationDuration,
     this.skipFocusNode,
     this.continueFocusNode,
   });
@@ -225,6 +236,7 @@ class _QuestionActions extends StatelessWidget {
   final String continueLabel;
   final VoidCallback onSkip;
   final VoidCallback onContinue;
+  final Duration animationDuration;
   final FocusNode? skipFocusNode;
   final FocusNode? continueFocusNode;
 
@@ -239,12 +251,14 @@ class _QuestionActions extends StatelessWidget {
         final Widget skipButton = TextButton(
           key: OnboardingQuestionShell.skipButtonKey,
           focusNode: skipFocusNode,
+          style: ButtonStyle(animationDuration: animationDuration),
           onPressed: interactionsEnabled ? onSkip : null,
           child: const Text('Skip'),
         );
         final Widget continueButton = FilledButton(
           key: OnboardingQuestionShell.continueButtonKey,
           focusNode: continueFocusNode,
+          style: ButtonStyle(animationDuration: animationDuration),
           onPressed: continueEnabled ? onContinue : null,
           child: Text(continueLabel),
         );
