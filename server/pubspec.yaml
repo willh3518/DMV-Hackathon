@@ -1,0 +1,11 @@
+name: chat_spike_server
+description: >-
+  Local proxy that holds OPENAI_API_KEY and SERPAPI_API_KEY server-side.
+  The Flutter web client calls this instead of OpenAI/SerpAPI directly, which
+  avoids shipping either key in the public web bundle and avoids SerpAPI's
+  CORS restriction (SerpAPI does not allow direct browser-origin requests).
+publish_to: 'none'
+version: 1.0.0
+
+environment:
+  sdk: ^3.10.0
