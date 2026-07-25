@@ -33,6 +33,18 @@ void main() {
       }
       expect(find.byKey(QuestionFiveScreen.otherFieldKey), findsOneWidget);
       expect(find.byKey(QuestionFiveScreen.noneKey), findsOneWidget);
+      expect(
+        tester
+            .widget<MultiSelectOptionTile>(
+              find.byKey(QuestionFiveScreen.noneKey),
+            )
+            .description,
+        isNull,
+      );
+      expect(
+        find.text('None of these situations affect the places I choose.'),
+        findsNothing,
+      );
       expect(find.text('Prefer not to say'), findsNothing);
       expect(
         find.byKey(const Key('question_five_prefer_not_to_say')),
@@ -168,6 +180,7 @@ void main() {
         expect(selectedData.flagsCollection.isButton, isTrue);
         expect(selectedData.flagsCollection.isSelected, Tristate.isTrue);
         expect(selectedData.hasAction(SemanticsAction.tap), isTrue);
+        expect(find.bySemanticsLabel('None'), findsOneWidget);
 
         final Finder otherField = find.byKey(QuestionFiveScreen.otherFieldKey);
         await tester.ensureVisible(otherField);

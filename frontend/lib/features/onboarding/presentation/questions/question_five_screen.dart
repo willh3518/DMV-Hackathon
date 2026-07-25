@@ -149,7 +149,6 @@ class _QuestionFiveScreenState extends State<QuestionFiveScreen> {
           MultiSelectOptionTile(
             key: QuestionFiveScreen.noneKey,
             label: 'None',
-            description: 'None of these situations affect the places I choose.',
             selected: widget.draft.noneApply,
             enabled: widget.enabled,
             onChanged: _changeNone,
