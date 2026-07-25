@@ -129,6 +129,8 @@ Phone approval gate:
 
 ### Phase 2 - Questions 1-3 in parallel (`2:00-3:15`)
 
+Status: implemented and awaiting the Phase 2 independent review and phone gate.
+
 Builders:
 
 - Q1 builder: accommodations and constraint-candidate semantics.

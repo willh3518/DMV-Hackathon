@@ -1,7 +1,11 @@
 import 'package:accessibility_frontend/contracts/authentication_gateway.dart';
+import 'package:accessibility_frontend/design_system/components/multi_select_option_tile.dart';
 import 'package:accessibility_frontend/domain/authentication/authentication_models.dart';
 import 'package:accessibility_frontend/design_system/app_theme.dart';
+import 'package:accessibility_frontend/domain/onboarding/onboarding_answers.dart';
 import 'package:accessibility_frontend/features/onboarding/presentation/onboarding_entry_flow.dart';
+import 'package:accessibility_frontend/features/onboarding/presentation/questions/question_one_screen.dart';
+import 'package:accessibility_frontend/features/onboarding/presentation/questions/question_two_screen.dart';
 import 'package:accessibility_frontend/features/onboarding/presentation/widgets/onboarding_question_shell.dart';
 import 'package:accessibility_frontend/fixtures/synthetic_authentication_gateway.dart';
 import 'package:accessibility_frontend/main.dart';
@@ -128,7 +132,45 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('resume next step shows honest temporary message and Q1', (
+  testWidgets('resume opens the available saved question and restores origin', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: OnboardingEntryFlow(
+          authenticationGateway: SyntheticAuthenticationGateway(
+            signInResult: AuthenticationSuccess(
+              nextStep: ResumeOnboardingNextStep(stepIndex: 1),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await _completeSignIn(tester);
+
+    expect(
+      find.text('What kind of experience works best for you?'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(OnboardingQuestionShell.backButtonKey));
+    await _settleQuestionTransition(tester);
+
+    expect(find.text('What accommodations help you?'), findsOneWidget);
+
+    await tester.tap(find.byKey(OnboardingQuestionShell.backButtonKey));
+    await _settleQuestionTransition(tester);
+
+    final TextButton signInButton = tester.widget<TextButton>(
+      find.byKey(const Key('sign_in_button')),
+    );
+    expect(signInButton.focusNode?.hasFocus, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('resume beyond Phase 2 uses an honest Question 3 fallback', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(
@@ -146,24 +188,67 @@ void main() {
 
     await _completeSignIn(tester);
 
-    expect(find.text('What accommodations help you?'), findsOneWidget);
     expect(
       find.text(
-        'We saved your place at question 4. This build reopens Question 1 '
-        'while the rest of onboarding is still being connected.',
+        'How far are you comfortable traveling without a private vehicle?',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        'Your saved place is Question 4. This build opens Question 3 while '
+        'Questions 4 and 5 are being connected.',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('Q1 and Q2 answers persist through Q3 and Back', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const MainApp());
+    await _completeSignUp(tester);
+
+    await tester.tap(
+      find.byKey(
+        QuestionOneScreen.optionKey(AccommodationOption.stepFreeAccess),
+      ),
+    );
+    await tester.pump();
+    await _continueToNextQuestion(tester);
+
+    expect(
+      find.text('What kind of experience works best for you?'),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(QuestionTwoScreen.foodOptionKey(FoodPreference.italian)),
+    );
+    await tester.pump();
+    await _continueToNextQuestion(tester);
+
+    expect(
+      find.text(
+        'How far are you comfortable traveling without a private vehicle?',
       ),
       findsOneWidget,
     );
 
     await tester.tap(find.byKey(OnboardingQuestionShell.backButtonKey));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 320));
-    await tester.pump();
-
-    final TextButton signInButton = tester.widget<TextButton>(
-      find.byKey(const Key('sign_in_button')),
+    await _settleQuestionTransition(tester);
+    final MultiSelectOptionTile italian = tester.widget<MultiSelectOptionTile>(
+      find.byKey(QuestionTwoScreen.foodOptionKey(FoodPreference.italian)),
     );
-    expect(signInButton.focusNode?.hasFocus, isTrue);
+    expect(italian.selected, isTrue);
+
+    await tester.tap(find.byKey(OnboardingQuestionShell.backButtonKey));
+    await _settleQuestionTransition(tester);
+    final MultiSelectOptionTile stepFree = tester.widget<MultiSelectOptionTile>(
+      find.byKey(
+        QuestionOneScreen.optionKey(AccommodationOption.stepFreeAccess),
+      ),
+    );
+    expect(stepFree.selected, isTrue);
     expect(tester.takeException(), isNull);
   });
 
@@ -255,11 +340,11 @@ void main() {
 
     await tester.pumpWidget(const MainApp());
     await _completeSignUp(tester);
-    await tester.ensureVisible(find.text('Your choices come next'));
+    await tester.ensureVisible(find.byKey(QuestionOneScreen.preferNotToSayKey));
     await tester.pump();
 
     expect(find.text('What accommodations help you?'), findsOneWidget);
-    expect(find.text('Your choices come next'), findsOneWidget);
+    expect(find.text('Prefer not to say'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -317,6 +402,22 @@ void main() {
     expect(tester.hasRunningAnimations, isTrue);
     expect(tester.takeException(), isNull);
   });
+}
+
+Future<void> _continueToNextQuestion(WidgetTester tester) async {
+  final Finder continueButton = find.byKey(
+    OnboardingQuestionShell.continueButtonKey,
+  );
+  await tester.ensureVisible(continueButton);
+  await tester.pump();
+  await tester.tap(continueButton);
+  await _settleQuestionTransition(tester);
+}
+
+Future<void> _settleQuestionTransition(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 320));
+  await tester.pump();
 }
 
 Future<void> _completeSignUp(

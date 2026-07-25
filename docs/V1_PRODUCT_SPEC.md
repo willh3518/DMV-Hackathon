@@ -443,7 +443,8 @@ The fixture suite shall include:
 
 - Authentication currently uses a synthetic gateway; real session, recovery,
   verification, and persistence behavior remain external dependencies.
-- Q1 currently contains placeholder content rather than choices.
+- Questions 1-3 use controlled in-memory drafts; Questions 4-5 and real profile
+  persistence are not yet connected.
 - Chat, Profile, recommendations, detail, location, legal, and account-management
   surfaces are not yet implemented.
 

@@ -3,9 +3,12 @@ import 'dart:async';
 import 'package:accessibility_frontend/contracts/authentication_gateway.dart';
 import 'package:accessibility_frontend/design_system/app_motion.dart';
 import 'package:accessibility_frontend/domain/authentication/authentication_models.dart';
+import 'package:accessibility_frontend/domain/onboarding/onboarding_answers.dart';
 import 'package:accessibility_frontend/features/authentication/presentation/authentication_screen.dart';
 import 'package:accessibility_frontend/features/onboarding/presentation/landing_screen.dart';
-import 'package:accessibility_frontend/features/onboarding/presentation/question_one_placeholder_screen.dart';
+import 'package:accessibility_frontend/features/onboarding/presentation/questions/question_one_screen.dart';
+import 'package:accessibility_frontend/features/onboarding/presentation/questions/question_three_screen.dart';
+import 'package:accessibility_frontend/features/onboarding/presentation/questions/question_two_screen.dart';
 import 'package:accessibility_frontend/features/onboarding/presentation/widgets/bubble_backdrop.dart';
 import 'package:accessibility_frontend/fixtures/synthetic_authentication_gateway.dart';
 import 'package:flutter/material.dart';
@@ -22,15 +25,24 @@ class OnboardingEntryFlow extends StatefulWidget {
 enum _LandingCta { getStarted, signIn }
 
 class _OnboardingEntryFlowState extends State<OnboardingEntryFlow>
-    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController _transitionController;
+  late final AnimationController _questionTransitionController;
   late final FocusNode _getStartedFocusNode;
   late final FocusNode _signInFocusNode;
-  late final FocusNode _questionHeadingFocusNode;
+  late final List<FocusNode> _questionHeadingFocusNodes;
   late final AuthenticationGateway _authenticationGateway;
+  AccommodationsDraft _accommodationsDraft = const AccommodationsDraft();
+  ExperiencePreferencesDraft _experiencePreferencesDraft =
+      const ExperiencePreferencesDraft();
+  TravelComfortDraft _travelComfortDraft = const TravelComfortDraft();
   _LandingCta _questionOrigin = _LandingCta.getStarted;
+  int _activeQuestionIndex = 0;
+  int _outgoingQuestionIndex = 0;
   bool _questionIsActive = false;
   bool _isTransitioning = false;
+  bool _isQuestionTransitioning = false;
+  bool _questionTransitionForward = true;
 
   @override
   void initState() {
@@ -40,9 +52,16 @@ class _OnboardingEntryFlowState extends State<OnboardingEntryFlow>
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
+    _questionTransitionController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
     _getStartedFocusNode = FocusNode(debugLabel: 'Get started');
     _signInFocusNode = FocusNode(debugLabel: 'Sign in');
-    _questionHeadingFocusNode = FocusNode(debugLabel: 'Question 1 heading');
+    _questionHeadingFocusNodes = List<FocusNode>.generate(
+      3,
+      (int index) => FocusNode(debugLabel: 'Question ${index + 1} heading'),
+    );
     _authenticationGateway =
         widget.authenticationGateway ??
         SyntheticAuthenticationGateway(
@@ -61,18 +80,23 @@ class _OnboardingEntryFlowState extends State<OnboardingEntryFlow>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _transitionController.dispose();
+    _questionTransitionController.dispose();
     _getStartedFocusNode.dispose();
     _signInFocusNode.dispose();
-    _questionHeadingFocusNode.dispose();
+    for (final FocusNode focusNode in _questionHeadingFocusNodes) {
+      focusNode.dispose();
+    }
     super.dispose();
   }
 
-  Future<void> _showQuestion() async {
+  Future<void> _showQuestion({int initialIndex = 0}) async {
     if (_isTransitioning || _questionIsActive) {
       return;
     }
 
     setState(() {
+      _activeQuestionIndex = initialIndex.clamp(0, 2);
+      _outgoingQuestionIndex = _activeQuestionIndex;
       _questionIsActive = true;
       _isTransitioning = true;
     });
@@ -81,10 +105,48 @@ class _OnboardingEntryFlowState extends State<OnboardingEntryFlow>
       setState(() => _isTransitioning = false);
       WidgetsBinding.instance.addPostFrameCallback((Duration _) {
         if (mounted) {
-          _questionHeadingFocusNode.requestFocus();
+          _questionHeadingFocusNodes[_activeQuestionIndex].requestFocus();
         }
       });
     }
+  }
+
+  Future<void> _goToQuestion(int targetIndex) async {
+    if (_isTransitioning ||
+        _isQuestionTransitioning ||
+        !_questionIsActive ||
+        targetIndex == _activeQuestionIndex ||
+        targetIndex < 0 ||
+        targetIndex > 2) {
+      return;
+    }
+
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      _outgoingQuestionIndex = _activeQuestionIndex;
+      _questionTransitionForward = targetIndex > _activeQuestionIndex;
+      _activeQuestionIndex = targetIndex;
+      _isQuestionTransitioning = true;
+    });
+    _questionTransitionController.value = 0;
+    await _questionTransitionController.animateTo(
+      1,
+      duration: AppMotion.resolveDuration(context),
+      curve: AppMotion.standardCurve,
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isQuestionTransitioning = false;
+      _outgoingQuestionIndex = _activeQuestionIndex;
+    });
+    _questionTransitionController.value = 0;
+    WidgetsBinding.instance.addPostFrameCallback((Duration _) {
+      if (mounted) {
+        _questionHeadingFocusNodes[_activeQuestionIndex].requestFocus();
+      }
+    });
   }
 
   Future<void> _showLanding() async {
@@ -240,14 +302,17 @@ class _OnboardingEntryFlowState extends State<OnboardingEntryFlow>
         await _showQuestion();
       case ResumeOnboardingNextStep resume:
         _questionOrigin = originCta;
-        await _showQuestion();
+        final int availableIndex = resume.stepIndex.clamp(0, 2);
+        await _showQuestion(initialIndex: availableIndex);
         if (mounted) {
-          _showMessageWithMessenger(
-            rootMessenger,
-            'We saved your place at question ${resume.stepIndex + 1}. '
-            'This build reopens Question 1 while the rest of onboarding is '
-            'still being connected.',
-          );
+          if (resume.stepIndex > 2) {
+            _showMessageWithMessenger(
+              rootMessenger,
+              'Your saved place is Question ${resume.stepIndex + 1}. '
+              'This build opens Question 3 while Questions 4 and 5 are being '
+              'connected.',
+            );
+          }
         }
       case OpenChatNextStep():
         _showMessageWithMessenger(
@@ -270,6 +335,125 @@ class _OnboardingEntryFlowState extends State<OnboardingEntryFlow>
     messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _showPhaseTwoCompleteMessage(BuildContext scaffoldContext) {
+    _showMessage(
+      scaffoldContext,
+      'Your answers stay available while the app is open. Questions 4 and 5 '
+      'are coming in the next stage.',
+    );
+  }
+
+  Widget _buildQuestionScreen({
+    required int index,
+    required BuildContext scaffoldContext,
+    required bool enabled,
+  }) {
+    return switch (index) {
+      0 => QuestionOneScreen(
+        key: const ValueKey<String>('question_one_screen'),
+        draft: _accommodationsDraft,
+        onChanged: (AccommodationsDraft draft) {
+          setState(() => _accommodationsDraft = draft);
+        },
+        headingFocusNode: _questionHeadingFocusNodes[0],
+        enabled: enabled,
+        onBack: _showLanding,
+        onSkip: () => _goToQuestion(1),
+        onContinue: () => _goToQuestion(1),
+      ),
+      1 => QuestionTwoScreen(
+        key: const ValueKey<String>('question_two_screen'),
+        draft: _experiencePreferencesDraft,
+        onChanged: (ExperiencePreferencesDraft draft) {
+          setState(() => _experiencePreferencesDraft = draft);
+        },
+        headingFocusNode: _questionHeadingFocusNodes[1],
+        enabled: enabled,
+        onBack: () => _goToQuestion(0),
+        onSkip: () => _goToQuestion(2),
+        onContinue: () => _goToQuestion(2),
+      ),
+      2 => QuestionThreeScreen(
+        key: const ValueKey<String>('question_three_screen'),
+        draft: _travelComfortDraft,
+        onChanged: (TravelComfortDraft draft) {
+          setState(() => _travelComfortDraft = draft);
+        },
+        headingFocusNode: _questionHeadingFocusNodes[2],
+        enabled: enabled,
+        onBack: () => _goToQuestion(1),
+        onSkip: () => _showPhaseTwoCompleteMessage(scaffoldContext),
+        onContinue: () => _showPhaseTwoCompleteMessage(scaffoldContext),
+      ),
+      _ => throw StateError('Unsupported onboarding question index: $index'),
+    };
+  }
+
+  Widget _buildActiveQuestionLayer({
+    required BuildContext scaffoldContext,
+    required bool reduceMotion,
+  }) {
+    final bool questionsEnabled =
+        !_isTransitioning && !_isQuestionTransitioning && _questionIsActive;
+    if (!_isQuestionTransitioning) {
+      return _buildQuestionScreen(
+        index: _activeQuestionIndex,
+        scaffoldContext: scaffoldContext,
+        enabled: questionsEnabled,
+      );
+    }
+
+    return AnimatedBuilder(
+      animation: _questionTransitionController,
+      builder: (BuildContext context, Widget? child) {
+        final double progress = _questionTransitionController.value;
+        final double direction = _questionTransitionForward ? 1 : -1;
+        final double travel = reduceMotion ? 0 : 24;
+
+        return Stack(
+          fit: StackFit.expand,
+          children: <Widget>[
+            Opacity(
+              opacity: 1 - progress,
+              child: Transform.translate(
+                offset: Offset(-direction * travel * progress, 0),
+                child: TickerMode(
+                  enabled: false,
+                  child: IgnorePointer(
+                    child: ExcludeFocus(
+                      child: ExcludeSemantics(
+                        child: _buildQuestionScreen(
+                          index: _outgoingQuestionIndex,
+                          scaffoldContext: scaffoldContext,
+                          enabled: false,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Opacity(
+              opacity: progress,
+              alwaysIncludeSemantics: true,
+              child: Transform.translate(
+                offset: Offset(direction * travel * (1 - progress), 0),
+                child: ExcludeFocus(
+                  excluding: true,
+                  child: _buildQuestionScreen(
+                    index: _activeQuestionIndex,
+                    scaffoldContext: scaffoldContext,
+                    enabled: false,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -351,15 +535,9 @@ class _OnboardingEntryFlowState extends State<OnboardingEntryFlow>
                                 child: ExcludeSemantics(
                                   key: const Key('question_semantics_gate'),
                                   excluding: !_questionIsActive,
-                                  child: QuestionOnePlaceholderScreen(
-                                    headingFocusNode: _questionHeadingFocusNode,
-                                    enabled:
-                                        !_isTransitioning && _questionIsActive,
-                                    onBack: _showLanding,
-                                    onSkip: () => _showMessage(
-                                      scaffoldContext,
-                                      'Question choices and Skip behavior arrive in the next onboarding build.',
-                                    ),
+                                  child: _buildActiveQuestionLayer(
+                                    scaffoldContext: scaffoldContext,
+                                    reduceMotion: reduceMotion,
                                   ),
                                 ),
                               ),
