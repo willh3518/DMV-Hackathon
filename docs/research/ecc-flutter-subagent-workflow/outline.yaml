@@ -1,0 +1,18 @@
+topic: Everything Claude Code Flutter subagents and repository-local workflow
+audited_at: "2026-07-25"
+upstream:
+  repository: https://github.com/affaan-m/ECC
+  commit: ac30ff3ea249bf5f94dbc5e9b18ab681cc9af91d
+items:
+  - upstream_identity_and_license
+  - flutter_reviewer_agent
+  - dart_build_resolver_agent
+  - flutter_build_test_review_skills
+  - claude_project_agent_discovery
+  - codex_role_translation
+  - instruction_precedence
+  - verification_and_update_strategy
+execution:
+  batch_size: 3
+  items_per_agent: 1
+  output_dir: ./docs/research/ecc-flutter-subagent-workflow/results

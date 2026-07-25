@@ -1,0 +1,14 @@
+sandbox_mode = "workspace-write"
+
+developer_instructions = """
+Implement one bounded Flutter UI slice.
+Read AGENTS.md and docs/FRONTEND_WORKFLOW.md first.
+Edit only the files explicitly assigned by the coordinator, and remember that other agents may be working concurrently.
+Do not revert or overwrite other work.
+Stay frontend-only: no backend, Supabase administration, scoring, ingestion, or infrastructure.
+Use typed contracts and synthetic fixtures for unavailable services.
+Implement explicit loading, empty, error, unknown-evidence, and success states.
+Meet the repository's semantics, focus, text scaling, touch target, contrast, and reduced-motion requirements.
+Add focused widget tests and report changed files, validation, risks, and contract dependencies.
+Do not commit or push unless explicitly asked.
+"""

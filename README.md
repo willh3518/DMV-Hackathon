@@ -73,14 +73,34 @@ Declared information might say that a wheelchair-accessible entrance exists. Obs
 
 ## Repository status
 
-This initial commit contains project documentation only. Application and backend scaffolding will be added in later commits.
+The repository contains a mobile Flutter frontend scaffold under `frontend/` and project-level agent workflow documentation.
 
-The planned implementation stack is:
+Current frontend targets:
 
-- Flutter for the client application
-- Supabase for backend services and data storage
+- Android
+- iOS
+
+`accessibility_frontend` is an internal package identifier, not the final product name.
+
+Backend services are owned separately. The frontend consumes agreed, typed contracts and uses synthetic fixtures while those services are unavailable.
+
+## Frontend setup
+
+```bash
+cd frontend
+flutter pub get
+flutter analyze
+flutter test
+flutter devices
+```
+
+The Android app builds successfully. The barebones iOS app has also been signed, installed, and launched on a physical iPhone. Because this repository is under macOS Documents/FileProvider, physical-device debug builds must use the temporary build directory documented in the frontend workflow.
+
+See [docs/FRONTEND_WORKFLOW.md](docs/FRONTEND_WORKFLOW.md) for the subagent workflow, app structure, accessibility gates, and device iteration loop.
+
+Version 1 is defined in the [product specification](docs/V1_PRODUCT_SPEC.md) and
+the executable [delivery plan](docs/V1_DELIVERY_PLAN.md).
 
 ## Team guidance
 
 Contributors and coding agents should read [AGENTS.md](AGENTS.md) before making changes. Claude-specific guidance is available in [CLAUDE.md](CLAUDE.md).
-

@@ -1,0 +1,30 @@
+provenance:
+  - canonical_url
+  - upstream_path
+  - commit
+  - license
+agent_definition:
+  - name
+  - purpose
+  - activation
+  - tools
+  - inputs
+  - outputs
+  - ownership_boundary
+installation:
+  - surface
+  - repository_local_path
+  - global_side_effects
+  - reload_behavior
+compatibility:
+  - claude_code_behavior
+  - codex_translation
+  - instruction_precedence
+  - known_limitations
+maintenance:
+  - verification_command
+  - update_method
+  - drift_risk
+uncertain:
+  - future_ecc_codex_plugin_reliability
+  - upstream_agent_schema_changes

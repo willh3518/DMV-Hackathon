@@ -1,0 +1,26 @@
+#:schema https://developers.openai.com/codex/config-schema.json
+
+persistent_instructions = "Follow AGENTS.md. Frontend feature work is subagent-driven, accessibility-first, and limited to the Flutter client."
+
+[features]
+multi_agent = true
+
+[agents]
+max_threads = 4
+max_depth = 1
+
+[agents.flutter_ui_builder]
+description = "Implements one explicitly owned Flutter UI slice with tests and accessibility behavior."
+config_file = "agents/flutter-ui-builder.toml"
+
+[agents.flutter_reviewer]
+description = "Read-only Flutter/Dart reviewer adapted from Everything Claude Code's flutter-reviewer role."
+config_file = "agents/flutter-reviewer.toml"
+
+[agents.dart_build_resolver]
+description = "Surgical Dart/Flutter analyzer, dependency, and build failure resolver adapted from Everything Claude Code."
+config_file = "agents/dart-build-resolver.toml"
+
+[agents.a11y_reviewer]
+description = "Read-only accessibility reviewer for semantics, focus, scaling, contrast, targets, and reduced motion."
+config_file = "agents/a11y-reviewer.toml"
